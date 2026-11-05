@@ -22,7 +22,7 @@ what's built, what's next, and open design questions.
 | International Buyer | ✅ Onboarding; standing buyer requirements profile; supply search (commodity/state/certification/quantity filters) + Create RFQ; post/browse/filter bids (commodity, bid type, attributes, destination, quantity); respond to offers, per-response chat + status lifecycle; resulting contracts + raise disputes; 30-day stale-listing nudge |
 | Program Operator | ✅ Onboarding; dashboard; create offers for grain the program itself holds (same production-data model as a grower); enroll growers directly or approve/decline grower-initiated affiliation requests; growers list with a read-only reporting rollup (no automatic inventory combination); browse/respond to bids; contracts + disputes |
 | Superadmin | ✅ Analytics dashboard; accounts list with freeze/unfreeze (enforced at login and at the API layer, not just the UI); all listings with moderation (remove); all contracts (any role); disputes modeled on GAFTA/FOSFA rules — category-driven arbitration vs. expert determination, tribunal → Board of Appeal tier with a 30-day appeal window, 90-day filing deadline with a time-barred flag (informational policy model, not real arbitrator assignment) |
-| Service Provider | ⏳ not scoped — no mockup screen defines this role's fields |
+| Service Provider | ✅ Onboarding; dashboard; profile with services offered and states covered; listed in the Service Provider directory (filterable by service category and state) that growers, buyers and operators search; accept/decline inbound service requests with per-request chat. **Trader opt-in** (`service_provider_profiles.is_trader`): request to represent international buyers, then place grain bids on an approved buyer's behalf (the buyer approves each bid before it goes live) and see/manage that buyer's resulting responses and agreements. Without the Trader opt-in a Service Provider is services-only — no listing boards. See [`docs/USER_ROLES.md`](docs/USER_ROLES.md#service-provider) |
 
 See [`plans/meti-match/05-roadmap.md`](plans/meti-match/05-roadmap.md) for the full
 phase breakdown.
@@ -31,9 +31,11 @@ phase breakdown.
 
 ```
 frontend/            Vite + React + TypeScript (strict) SPA
-  src/onboarding/     Role picker + registration wizards (grower/operator/buyer)
+  src/onboarding/     Role picker + registration wizards (grower/operator/buyer/service provider)
   src/grower/         Grower dashboard (offers, browse bids)
   src/buyer/          Buyer dashboard (requirements, supply search, bids/RFQs)
+  src/service_provider/ Service Provider dashboard (service requests, buyer representations, trader bids)
+  src/services/        Service Provider directory + service request threads
   src/listings/       Shared across roles: response chat + status (ResponseThread),
                        the two-directional responses view (ResponsesPanel), bid browsing
   src/components/     Home.tsx (post-onboarding placeholder for roles without a dashboard yet)
@@ -84,7 +86,7 @@ METI's *original* project instead — see the note in each file):
 | `0014_updates_batch.sql` | Yield units + verification document paths on `production_data`/`offers`; `accounts.frozen`/`frozen_reason`; GAFTA dispute fields (`category`, `resolution_track`, `tier`, `filing_deadline`, `is_time_barred`, `tribunal_resolution_notes`, `appealed_at`) on `disputes` |
 | `0062_environmental_listings.sql` | Carbon & environmental-data bids/offers: `asset_class`, `outcome_type`, `vintage_years`, `source_states`, `source_commodities`, `methodology` (+ `offers.data_attributes`); widens the `bid_type`, `uom` and `quantity_basis` checks |
 
-`seeds/grain_demo.sql` seeds one demo international buyer with a few open bids, so a grower has
+`seeds/grain_demo.sql` seeds one demo buyer with a few open bids, so a grower has
 real data to browse before every role's UI is built out.
 
 ## Local development
