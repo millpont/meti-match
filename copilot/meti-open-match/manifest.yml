@@ -1,0 +1,44 @@
+# AWS Copilot service manifest — App Runner (Request-Driven Web Service), same shape as METI.
+# One container: Flask serves the API and the built React SPA on port 5000.
+name: meti-open-match
+type: Request-Driven Web Service
+
+image:
+  build: Dockerfile
+  port: 5000
+
+cpu: 1024
+memory: 2048
+
+# Private placement -> Copilot provisions NAT gateways with fixed Elastic IPs, so this app has
+# a stable outbound IP for the Supabase allow-list (same approach as METI).
+network:
+  vpc:
+    placement: private
+
+healthcheck:
+  path: /health
+  healthy_threshold: 2
+  interval: 10s
+  timeout: 5s
+
+variables:
+  ENVIRONMENT: production
+  AWS_REGION: us-east-1
+  FLASK_ENV: production
+
+# Secrets are pulled from SSM Parameter Store under
+# /copilot/meti-open-match/<env>/secrets/<NAME>. Provision with:
+#   copilot secret init --cli-input-yaml copilot-secrets.yml
+secrets:
+  APP_SECRET_KEY: /copilot/meti-open-match/production/secrets/APP_SECRET_KEY
+  AUTH0_CLIENT_ID: /copilot/meti-open-match/production/secrets/AUTH0_CLIENT_ID
+  AUTH0_CLIENT_SECRET: /copilot/meti-open-match/production/secrets/AUTH0_CLIENT_SECRET
+  AUTH0_DOMAIN: /copilot/meti-open-match/production/secrets/AUTH0_DOMAIN
+  AUTH0_CALLBACK_URL: /copilot/meti-open-match/production/secrets/AUTH0_CALLBACK_URL
+  DB_NAME: /copilot/meti-open-match/production/secrets/DB_NAME
+  DB_USER: /copilot/meti-open-match/production/secrets/DB_USER
+  DB_PASSWORD: /copilot/meti-open-match/production/secrets/DB_PASSWORD
+  DB_HOST: /copilot/meti-open-match/production/secrets/DB_HOST
+  DB_PORT: /copilot/meti-open-match/production/secrets/DB_PORT
+  SUPERADMIN_ACCOUNT_ID: /copilot/meti-open-match/production/secrets/SUPERADMIN_ACCOUNT_ID
