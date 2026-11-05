@@ -6,14 +6,6 @@ attributes, international buyers browse supply and post bids/RFQs, and both side
 deal. The full build plan lives in [`plans/meti-match/`](plans/meti-match/README.md) — read that first for
 what's built, what's next, and open design questions.
 
-> This repo started as **METI Open Match**, a two-sided marketplace for agricultural
-> environmental outcomes (carbon/water credits). That code is still present (see
-> [Legacy carbon-credit feature](#legacy-carbon-credit-feature) below) but is being superseded by
-> METI Match, which runs against its **own, separate Supabase
-> project** — not the one `open_match` lives in.
->
-> This code was copied in from the `meti-open-deposits` repo and rebranded for METI / Millpont.
-
 ## Roles
 
 | Role | Status |
