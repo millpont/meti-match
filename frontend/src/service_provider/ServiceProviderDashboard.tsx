@@ -37,7 +37,7 @@ const SERVICES_TABS: { id: Tab; label: string }[] = [
 ];
 
 /** A Service Provider. By default a technical-services provider (service requests only). One who
- * has opted in as a Trader also contracts (bids) on behalf of represented international buyers,
+ * has opted in as a Trader also contracts (bids) on behalf of represented buyers,
  * with their approval, and manages the execution of those buyers' agreements. See
  * representations_routes.py / bids_routes.py's on_behalf_of_buyer_account_id. */
 export default function ServiceProviderDashboard({ accountName, isTrader }: { accountName?: string | null; isTrader: boolean }) {
@@ -119,7 +119,7 @@ export default function ServiceProviderDashboard({ accountName, isTrader }: { ac
             <button onClick={() => setTab("buyers")} className="card flex flex-col items-start gap-2 p-5 text-left transition-colors hover:border-brand-green">
               <IconCircle tone="gold"><UsersIcon /></IconCircle>
               <div className="text-sm font-semibold text-slate-900">Represent a buyer</div>
-              <div className="text-xs text-slate-600">Request to represent an international buyer.</div>
+              <div className="text-xs text-slate-600">Request to represent a buyer.</div>
             </button>
             <button onClick={() => setTab("bids")} className="card flex flex-col items-start gap-2 p-5 text-left transition-colors hover:border-brand-green">
               <IconCircle tone="green"><GavelIcon /></IconCircle>

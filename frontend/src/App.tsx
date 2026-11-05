@@ -252,7 +252,7 @@ function Landing() {
         <h1 className="text-2xl font-bold text-white">METI Match</h1>
         <p className="mt-2 max-w-lg text-white/70">
           A METI marketplace by Millpont connecting growers, program
-          operators, and international buyers around attribute-specific corn, sorghum, and barley —
+          operators, and buyers around attribute-specific corn, sorghum, and barley —
           from supply signals to facilitated introductions.
         </p>
       </div>

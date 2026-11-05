@@ -5,7 +5,7 @@ import { orgNoun } from "./constants";
 
 const ROLE_LABELS: Record<string, string> = {
   grower: "Grower", program_operator: "Program Operator",
-  international_buyer: "International Buyer", service_provider: "Service Provider",
+  international_buyer: "Buyer", service_provider: "Service Provider",
 };
 
 /** The "join an existing company" half of registration, for a role already picked one step

@@ -3,7 +3,7 @@ import { api } from "../api";
 import { Badge, Spinner } from "../ui";
 import type { BuyerRepresentation, ProgramOperatorOption } from "../types";
 
-/** A Trader's standing relationships with the international buyers they represent — unlike a
+/** A Trader's standing relationships with the buyers they represent — unlike a
  * grower's program affiliation, there's no "at most one" cap here (a trader may represent
  * several buyers). Each active one lets the Trader place bids and manage agreements on that
  * buyer's behalf; see CreateRfqForm's on-behalf-of picker and contracts_routes.py. */
@@ -84,7 +84,7 @@ export default function MyRepresentations() {
 
       <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-brand-edge pt-4">
         <select className="field max-w-xs" value={selected} onChange={(e) => setSelected(e.target.value)}>
-          <option value="">Select an international buyer</option>
+          <option value="">Select a buyer</option>
           {availableBuyers.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
         <button type="button" className="btn-primary shrink-0" disabled={!selected || busy} onClick={request}>

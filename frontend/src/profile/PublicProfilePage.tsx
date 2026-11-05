@@ -5,7 +5,7 @@ import type { PublicProfile } from "../types";
 
 const ROLE_LABELS: Record<string, string> = {
   grower: "Grower", program_operator: "Program Operator",
-  international_buyer: "International Buyer", service_provider: "Service Provider", admin: "Admin",
+  international_buyer: "Buyer", service_provider: "Service Provider", admin: "Admin",
 };
 
 /** The full profile page — more room than PublicProfileModal for a longer bio and a photo

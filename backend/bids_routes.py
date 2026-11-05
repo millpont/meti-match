@@ -1,4 +1,4 @@
-"""Demand-side listings — international buyers, and (on their behalf, with approval) the
+"""Demand-side listings — buyers, and (on their behalf, with approval) the
 Service Providers (Traders) representing them. See plans/meti-match/03-api-plan.md.
 
 The buyer-facing UI lands in Phase 3, but create/list exist starting Phase 2 so growers'
@@ -120,7 +120,7 @@ def create_bid():
         return err
     role = session.get("role")
     if role not in ("international_buyer", "service_provider"):
-        return jsonify({"error": "only international buyers (or a service provider on their behalf) can create bids"}), 403
+        return jsonify({"error": "only buyers (or a service provider on their behalf) can create bids"}), 403
     not_trader = require_trader(acct, role)
     if not_trader:
         return not_trader
@@ -313,7 +313,7 @@ def bids_pending_approval():
     if err:
         return err
     if session.get("role") != "international_buyer":
-        return jsonify({"error": "only international buyers have bids awaiting approval"}), 403
+        return jsonify({"error": "only buyers have bids awaiting approval"}), 403
     rows = sb.select(TABLE, {
         "on_behalf_of_buyer_account_id": f"eq.{acct}", "buyer_approval_status": "eq.pending",
         "order": "created_at.desc", "select": "*",

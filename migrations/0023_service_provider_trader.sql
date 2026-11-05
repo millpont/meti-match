@@ -1,10 +1,10 @@
 -- Unlocks the Service Provider ("Trader") role and its two client-defined capabilities:
 --
--- 1. "Contract on behalf of an international buyer with its approval" — same on-behalf-of +
+-- 1. "Contract on behalf of a buyer with its approval" — same on-behalf-of +
 --    approval pattern already built for Program Operator -> Grower offers, mirrored onto bids.
 --    No quantity cap (unlike the grower acres_enrolled cap) — buyers have no standing "enrolled
 --    volume" concept to cap against.
--- 2. "Manage the execution of any agreement made by [a represented] international buyer" — a
+-- 2. "Manage the execution of any agreement made by [a represented] buyer" — a
 --    standing buyer_representations relationship (request/approve, mirrors program_enrollments'
 --    grower-initiated affiliation) that, once active, gives the trader visibility into and
 --    status-management rights over that buyer's contracts (see contracts_routes.py).

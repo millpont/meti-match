@@ -2,7 +2,7 @@
 
 ## Source
 
-Mockups (18 slides) for a METI / Millpont pilot to facilitate international buyer access to
+Mockups (18 slides) for a METI / Millpont pilot to facilitate buyer access to
 specialty grains with sustainability attributes.
 
 ## Relationship to the current app
@@ -22,7 +22,7 @@ What's different, per the mockups:
   - **U.S. Grower** — sells their own grain.
   - **Program Operator** — aggregates grain from enrolled growers *and* may also offer their own
     production. A grower can belong to a program operator's program.
-  - **International Buyer** — posts requirements/bids, browses supply, imports grain.
+  - **Buyer** — posts requirements/bids, browses supply, imports grain.
   - **Service Provider** — offers services to the industry (logistics, inspection, financing,
     etc.). **OPEN QUESTION:** no registration/dashboard mockup exists for this role — the deck
     only shows it as a landing-page tile. Scope it (even minimally) before building its
@@ -50,7 +50,7 @@ What's different, per the mockups:
 |---|---|---|
 | U.S. Grower | 3, 7, 8, 9 | Create profile, offer grain, browse/respond to bids, track production data |
 | Program Operator | 4, 10, 11, 12 | Enroll growers, aggregate + offer grain, browse/respond to bids |
-| International Buyer | 5, 13, 14, 15, 16 | Set requirements, browse supply, place bids/RFQs, manage contracts |
+| Buyer | 5, 13, 14, 15, 16 | Set requirements, browse supply, place bids/RFQs, manage contracts |
 | Service Provider | (landing tile only) | TBD |
 | Admin | 17 | Marketplace-wide analytics, user/org/listing management, disputes |
 

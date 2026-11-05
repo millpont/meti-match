@@ -9,7 +9,7 @@ dashboard renders) and `session["roles"]` (the full set held). Every role gate b
 `session.get("role")`), not just hidden/shown in the frontend — a direct API call from the wrong
 role gets a 403 regardless of what the UI would have shown.
 
-There are four onboardable roles — **Grower**, **Program Operator**, **International Buyer**,
+There are four onboardable roles — **Grower**, **Program Operator**, **Buyer**,
 **Service Provider** — plus **Superadmin**, which is a role value (`"admin"`) rather than a
 separate account type.
 
@@ -94,7 +94,7 @@ capabilities plus the enrollment roster — the two roles share most of `offers_
 
 ---
 
-## International Buyer
+## Buyer
 
 **Onboarding**: `POST /api/onboarding/buyer` — same shared contact fields. Creates an
 `international_buyer_profiles` row (`company_name`, empty `commodities_of_interest`/
@@ -143,7 +143,7 @@ empty and are edited later via the profile endpoint).
   `buyer_representations`, a declined request stays on file (not deleted) and doesn't block the
   same requester from asking again later — only a second *pending* request to the same provider
   is blocked.
-- Operate as a **Trader** for International Buyers — request to represent a buyer (`POST
+- Operate as a **Trader** for Buyers — request to represent a buyer (`POST
   /api/buyer-representations/request`), view `mine`/`active-buyers`, cancel a still-pending
   request (`backend/representations_routes.py`, gated to `role == "service_provider"`). Once a
   buyer approves, this Service Provider can place bids with `on_behalf_of_buyer_account_id` set to

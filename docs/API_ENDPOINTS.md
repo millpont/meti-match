@@ -357,7 +357,7 @@ offer itself, taking precedence over the grower's commodity-level default docume
 
 ## Bids (demand listings / RFQs)
 
-`backend/bids_routes.py`. International buyers, or (on their behalf, with approval) a Service
+`backend/bids_routes.py`. Buyers, or (on their behalf, with approval) a Service
 Provider/Trader. `VALID_BID_TYPE = (available_grain, acres_for_contracting,
 volumes_for_contracting)`.
 

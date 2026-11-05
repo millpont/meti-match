@@ -51,7 +51,7 @@ def _num(v):
 def _can_act_on_contract(acct, role, row):
     """Whether acct may raise a dispute or advance status on this contract — the two direct
     parties, plus (per the Trader role's "manage the execution of any agreement made by [a
-    represented] international buyer" capability) a service provider actively representing the
+    represented] buyer" capability) a service provider actively representing the
     buyer side."""
     if acct in (str(row["seller_account_id"]), str(row["buyer_account_id"])):
         return True

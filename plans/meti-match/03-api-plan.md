@@ -27,7 +27,7 @@ Flask blueprints, replacing the single `match_routes.py`. All routes keep today'
 - `GET /api/offers/mine` — "Your Offers" table (page 8).
 - `POST /api/offers/<id>/withdraw`.
 
-## `bids_routes.py` (international buyers)
+## `bids_routes.py` (buyers)
 
 - `POST /api/bids`, `PATCH /api/bids/<id>`, `POST /api/bids/<id>/close`.
 - `GET /api/bids` — public board, same filter shape as offers but on bid fields

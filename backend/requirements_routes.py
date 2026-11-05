@@ -19,7 +19,7 @@ def _require_buyer():
     if not acct:
         return None, (jsonify({"error": "no account access"}), 403)
     if session.get("role") != "international_buyer":
-        return None, (jsonify({"error": "only international buyers have requirements"}), 403)
+        return None, (jsonify({"error": "only buyers have requirements"}), 403)
     return str(acct), None
 
 

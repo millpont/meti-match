@@ -6,14 +6,14 @@ import type { AccountRole, DirectoryEntry } from "../types";
 
 const ROLE_TABS: { role: AccountRole; label: string }[] = [
   { role: "grower", label: "Growers" },
-  { role: "international_buyer", label: "International Buyers" },
+  { role: "international_buyer", label: "Buyers" },
   { role: "program_operator", label: "Program Operators" },
   { role: "service_provider", label: "Service Providers" },
 ];
 
 const ROLE_LABELS: Record<string, string> = {
   grower: "Grower",
-  international_buyer: "International Buyer",
+  international_buyer: "Buyer",
   program_operator: "Program Operator",
   service_provider: "Service Provider",
 };

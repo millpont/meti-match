@@ -1,6 +1,6 @@
 -- METI Match — demo seed for Phase 2 manual testing.
 --
--- Seeds one demo international buyer account (with a profile) and a few open bids, so a
+-- Seeds one demo buyer account (with a profile) and a few open bids, so a
 -- grower's "Browse Bids" screen has real data before Phase 3 builds the buyer-facing UI.
 -- Idempotent: matches on accounts.name, so re-running replaces the demo buyer's bids rather
 -- than duplicating them.

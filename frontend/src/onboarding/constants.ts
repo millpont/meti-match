@@ -13,7 +13,7 @@ export const GRAIN_COMMODITIES = ["Corn", "Sorghum", "Barley"] as const;
 
 export const ACCOUNT_ROLE_LABELS: Record<string, string> = {
   grower: "Grower", program_operator: "Program Operator",
-  international_buyer: "International Buyer", service_provider: "Service Provider", admin: "Admin",
+  international_buyer: "Buyer", service_provider: "Service Provider", admin: "Admin",
 };
 
 /** What registration calls the organization being created or joined: a Program Operator signs up

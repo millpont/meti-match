@@ -92,7 +92,7 @@ Mirrors page 8's "Create New Offer" form + table.
 | `status` | text | check `('draft','published','accepted','withdrawn')` |
 | `created_at`, `updated_at` | timestamptz | |
 
-### `bids` (demand side — international buyers' postings/requirements)
+### `bids` (demand side — buyers' postings/requirements)
 Mirrors pages 9/13's bid cards ("Available Grain" / "Acres for Contracting" / "Volumes for
 Contracting").
 

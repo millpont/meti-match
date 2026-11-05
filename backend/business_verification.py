@@ -18,7 +18,7 @@ from config import config
 # Which identifier kinds each role may supply — per the client's list:
 #   Grower / Service Provider: EIN, or a state registration identifier.
 #   Program Operator: EIN, or the state identifier of a parent/affiliate organization.
-#   International Buyer: official registration/incorporation number in the country of origin.
+#   Buyer: official registration/incorporation number in the country of origin.
 ID_TYPES_BY_ROLE = {
     "grower": ("ein", "state_registration"),
     "service_provider": ("ein", "state_registration"),

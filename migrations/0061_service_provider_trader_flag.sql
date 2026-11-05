@@ -1,5 +1,5 @@
 -- Service Providers are technical-services providers by default; only those who opt in as a
--- Trader (contracting on behalf of represented international buyers) get bids, listings,
+-- Trader (contracting on behalf of represented buyers) get bids, listings,
 -- Responses, Agreements and contract stats. Backfills existing traders — any SP that already
 -- has a buyer representation or created a bid — so nobody loses access they were using.
 

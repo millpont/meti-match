@@ -72,7 +72,7 @@ export default function SignupForm({
           <div>
             <label className="flex items-center gap-2 text-sm font-medium text-slate-800">
               <input type="checkbox" checked={!!draft.is_trader} onChange={(e) => set("is_trader", e.target.checked)} />
-              I'm a Trader — I contract on behalf of international buyers
+              I'm a Trader — I contract on behalf of buyers
             </label>
             <p className="mt-1 text-xs text-slate-500">
               Leave this off if you only provide technical services (inspection, logistics, financing…). You

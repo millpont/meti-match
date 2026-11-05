@@ -11,8 +11,8 @@ const ROLES: {
 }[] = [
   { id: "grower", label: "Grower", blurb: "Sell your grain, explore programs, and grow your business.", icon: WheatIcon, tone: "green" },
   { id: "program_operator", label: "Program Operator", blurb: "Aggregate grain from enrolled growers and offer your own production.", icon: UsersIcon, tone: "gold" },
-  { id: "international_buyer", label: "International Buyer", blurb: "Source high-quality grain and build reliable partnerships.", icon: GlobeIcon, tone: "green" },
-  { id: "service_provider", label: "Service Provider", blurb: "Offer technical services (inspection, logistics, financing…) — or trade on behalf of international buyers.", icon: GavelIcon, tone: "gold" },
+  { id: "international_buyer", label: "Buyer", blurb: "Source high-quality grain and build reliable partnerships.", icon: GlobeIcon, tone: "green" },
+  { id: "service_provider", label: "Service Provider", blurb: "Offer technical services (inspection, logistics, financing…) — or trade on behalf of buyers.", icon: GavelIcon, tone: "gold" },
 ];
 
 /** Step 1 of registration — pick a role before deciding whether to create a new company or

@@ -4,7 +4,7 @@ import type { AccountRole, Me } from "./types";
 
 const ROLE_LABELS: Record<string, string> = {
   grower: "Grower", program_operator: "Program Operator",
-  international_buyer: "International Buyer", service_provider: "Service Provider",
+  international_buyer: "Buyer", service_provider: "Service Provider",
 };
 
 // Roles an account can add to itself / switch into — mirrors onboarding_routes.py's

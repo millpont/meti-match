@@ -2,7 +2,7 @@
 
 **METI Match** by **Millpont** — matchmaking infrastructure for agricultural and environmental
 markets. A role-based grain trading platform: growers and program operators list grain with sustainability
-attributes, international buyers browse supply and post bids/RFQs, and both sides negotiate to a
+attributes, buyers browse supply and post bids/RFQs, and both sides negotiate to a
 deal. The full build plan lives in [`plans/meti-match/`](plans/meti-match/README.md) — read that first for
 what's built, what's next, and open design questions.
 
@@ -11,10 +11,10 @@ what's built, what's next, and open design questions.
 | Role | Status |
 |---|---|
 | Grower | ✅ Onboarding (farm profile, practices, optional program affiliation); create/edit offers with per-commodity production data defaults and per-listing overrides (yield incl. units, irrigation, rotation, soil test, third-party verification + uploaded statement); browse/filter bids and respond; per-response chat gated on the listing owner starting communication, full status lifecycle to accepted; resulting contracts + raise disputes; request/cancel program affiliation with a program operator; 30-day stale-listing nudge |
-| International Buyer | ✅ Onboarding; standing buyer requirements profile; supply search (commodity/state/certification/quantity filters) + Create RFQ; post/browse/filter bids (commodity, bid type, attributes, destination, quantity); respond to offers, per-response chat + status lifecycle; resulting contracts + raise disputes; 30-day stale-listing nudge |
+| Buyer | ✅ Onboarding; standing buyer requirements profile; supply search (commodity/state/certification/quantity filters) + Create RFQ; post/browse/filter bids (commodity, bid type, attributes, destination, quantity); respond to offers, per-response chat + status lifecycle; resulting contracts + raise disputes; 30-day stale-listing nudge |
 | Program Operator | ✅ Onboarding; dashboard; create offers for grain the program itself holds (same production-data model as a grower); enroll growers directly or approve/decline grower-initiated affiliation requests; growers list with a read-only reporting rollup (no automatic inventory combination); browse/respond to bids; contracts + disputes |
 | Superadmin | ✅ Analytics dashboard; accounts list with freeze/unfreeze (enforced at login and at the API layer, not just the UI); all listings with moderation (remove); all contracts (any role); disputes modeled on GAFTA/FOSFA rules — category-driven arbitration vs. expert determination, tribunal → Board of Appeal tier with a 30-day appeal window, 90-day filing deadline with a time-barred flag (informational policy model, not real arbitrator assignment) |
-| Service Provider | ✅ Onboarding; dashboard; profile with services offered and states covered; listed in the Service Provider directory (filterable by service category and state) that growers, buyers and operators search; accept/decline inbound service requests with per-request chat. **Trader opt-in** (`service_provider_profiles.is_trader`): request to represent international buyers, then place grain bids on an approved buyer's behalf (the buyer approves each bid before it goes live) and see/manage that buyer's resulting responses and agreements. Without the Trader opt-in a Service Provider is services-only — no listing boards. See [`docs/USER_ROLES.md`](docs/USER_ROLES.md#service-provider) |
+| Service Provider | ✅ Onboarding; dashboard; profile with services offered and states covered; listed in the Service Provider directory (filterable by service category and state) that growers, buyers and operators search; accept/decline inbound service requests with per-request chat. **Trader opt-in** (`service_provider_profiles.is_trader`): request to represent buyers, then place grain bids on an approved buyer's behalf (the buyer approves each bid before it goes live) and see/manage that buyer's resulting responses and agreements. Without the Trader opt-in a Service Provider is services-only — no listing boards. See [`docs/USER_ROLES.md`](docs/USER_ROLES.md#service-provider) |
 
 See [`plans/meti-match/05-roadmap.md`](plans/meti-match/05-roadmap.md) for the full
 phase breakdown.
@@ -35,7 +35,7 @@ frontend/            Vite + React + TypeScript (strict) SPA
 backend/              Flask JSON API + Auth0 login; serves the built SPA
   onboarding_routes.py   Self-service account creation (replaces admin-linking)
   offers_routes.py       Supply-side listings (growers, program operators)
-  bids_routes.py         Demand-side listings (international buyers)
+  bids_routes.py         Demand-side listings (buyers)
   responses_routes.py    "Contact Supplier" / "Respond to Bid", status lifecycle, chat
   requirements_routes.py Buyer's standing requirements profile
   match_routes.py        Legacy carbon-credit deal/board/match routes (unwired from the UI)

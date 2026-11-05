@@ -1,4 +1,4 @@
-"""A Service Provider (Trader) requests to represent an International Buyer; the buyer approves
+"""A Service Provider (Trader) requests to represent a Buyer; the buyer approves
 or declines. Mirrors enrollments_routes.py's grower-initiated program affiliation almost exactly,
 just for the buyer side of the Trader role's two capabilities:
 
@@ -61,7 +61,7 @@ def _require_buyer():
     if not acct:
         return None, (jsonify({"error": "no account access"}), 403)
     if session.get("role") != "international_buyer":
-        return None, (jsonify({"error": "only international buyers manage representation requests"}), 403)
+        return None, (jsonify({"error": "only buyers manage representation requests"}), 403)
     return str(acct), None
 
 
@@ -105,7 +105,7 @@ def request_representation():
 
     buyer_rows = sb.select("accounts", {"id": f"eq.{buyer_account_id}", "select": "role,name", "limit": 1})
     if not buyer_rows or buyer_rows[0].get("role") != "international_buyer":
-        return jsonify({"error": "international buyer not found"}), 404
+        return jsonify({"error": "buyer not found"}), 404
 
     existing = sb.select(TABLE, {
         "service_provider_account_id": f"eq.{acct}", "buyer_account_id": f"eq.{buyer_account_id}",

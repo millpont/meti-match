@@ -94,7 +94,7 @@ export interface AccountSetupDraft {
   company: string;
   phone: string;
   email: string;
-  /** Service Provider signup only — opts in to trading on behalf of international buyers. */
+  /** Service Provider signup only — opts in to trading on behalf of buyers. */
   is_trader?: boolean;
 }
 
