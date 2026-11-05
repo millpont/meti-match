@@ -3,14 +3,31 @@ import { api } from "../api";
 import { EmptyState, MultiSelectDropdown, Spinner, NumberInput } from "../ui";
 import { US_STATES } from "../constants";
 import { useTaxonomyTerms } from "../useTaxonomyTerms";
-import type { Offer, Organization, QuantityBasis } from "../types";
+import type { Offer, OfferFilters, Organization } from "../types";
 import { GRAIN_COMMODITIES } from "../listings/constants";
 import SupplyOfferCard from "../listings/SupplyOfferCard";
 import RespondAmountModal from "../listings/RespondAmountModal";
 import CreateRfqForm from "./CreateRfqForm";
+import ListingComposer from "../listings/ListingComposer";
+import { outcomesFor } from "../listings/environmental";
+
+/** Supply tabs: grain by volume, grain by acres, then carbon and environmental-data offers. */
+type SupplyTab = "grain" | "acres" | "carbon" | "environmental";
+const SUPPLY_TABS: { id: SupplyTab; label: string }[] = [
+  { id: "grain", label: "Grain" },
+  { id: "acres", label: "Acres" },
+  { id: "carbon", label: "Carbon" },
+  { id: "environmental", label: "Environmental Data" },
+];
+
+function tabFilters(tab: SupplyTab): Partial<Pick<OfferFilters, "quantityBasis" | "assetClasses">> {
+  return tab === "carbon" || tab === "environmental"
+    ? { quantityBasis: "outcome", assetClasses: [tab] }
+    : { quantityBasis: tab };
+}
 
 export default function SupplySearch() {
-  const [basis, setBasis] = useState<QuantityBasis>("grain");
+  const [basis, setBasis] = useState<SupplyTab>("grain");
   const [commodities, setCommodities] = useState<string[]>([]);
   const [states, setStates] = useState<string[]>([]);
   const [selectedCertifications, setSelectedCertifications] = useState<string[]>([]);
@@ -34,7 +51,7 @@ export default function SupplySearch() {
   // this, whichever request happens to finish last wins, regardless of which tab is selected.
   const latestRequestId = useRef(0);
 
-  const search = (overrideBasis: QuantityBasis = basis, overrides: { commodities?: string[]; states?: string[]; certifications?: string[]; attributes?: string[]; practices?: string[]; organizations?: string[]; quantityMin?: string; quantityMax?: string } = {}) => {
+  const search = (overrideBasis: SupplyTab = basis, overrides: { commodities?: string[]; states?: string[]; certifications?: string[]; attributes?: string[]; practices?: string[]; organizations?: string[]; quantityMin?: string; quantityMax?: string } = {}) => {
     const requestId = ++latestRequestId.current;
     api.browseOffers({
       commodities: overrides.commodities ?? commodities, states: overrides.states ?? states,
@@ -43,15 +60,20 @@ export default function SupplySearch() {
       practices: overrides.practices ?? selectedPractices,
       organizations: overrides.organizations ?? selectedOrganizations,
       quantityMin: overrides.quantityMin ?? quantityMin, quantityMax: overrides.quantityMax ?? quantityMax,
-      quantityBasis: overrideBasis,
+      ...tabFilters(overrideBasis),
     }).then((r) => { if (requestId === latestRequestId.current) setOffers(r.offers); })
       .catch(() => { if (requestId === latestRequestId.current) setOffers([]); });
   };
 
-  const selectBasis = (next: QuantityBasis) => {
+  const selectBasis = (next: SupplyTab) => {
     setBasis(next);
-    search(next);
+    // Crop names and outcome names don't overlap, so a commodity pick never carries across.
+    setCommodities([]);
+    search(next, { commodities: [] });
   };
+  const commodityOptions = basis === "carbon" || basis === "environmental"
+    ? outcomesFor(basis).map((o) => o.label)
+    : GRAIN_COMMODITIES;
 
   const hasFilters =
     commodities.length > 0 || states.length > 0 || selectedCertifications.length > 0 ||
@@ -100,32 +122,30 @@ export default function SupplySearch() {
         </button>
       </div>
 
-      {showRfq && <div className="mb-6"><CreateRfqForm onCreated={() => setShowRfq(false)} /></div>}
+      {showRfq && (
+        <div className="mb-6">
+          <ListingComposer side="bid" grainForm={<CreateRfqForm onCreated={() => setShowRfq(false)} />} onCreated={() => {}} />
+        </div>
+      )}
 
-      <div className="mb-4 flex gap-1.5">
-        <button
-          type="button"
-          onClick={() => selectBasis("grain")}
-          className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-            basis === "grain" ? "border-brand-green bg-brand-greenLight text-brand-green" : "border-brand-edge text-slate-600"
-          }`}
-        >
-          Grain
-        </button>
-        <button
-          type="button"
-          onClick={() => selectBasis("acres")}
-          className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-            basis === "acres" ? "border-brand-green bg-brand-greenLight text-brand-green" : "border-brand-edge text-slate-600"
-          }`}
-        >
-          Acres
-        </button>
+      <div className="mb-4 flex flex-wrap gap-1.5">
+        {SUPPLY_TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => selectBasis(t.id)}
+            className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+              basis === t.id ? "border-brand-green bg-brand-greenLight text-brand-green" : "border-brand-edge text-slate-600"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       <div className="card mb-6 p-4">
         <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-          <MultiSelectDropdown label="Commodity" options={GRAIN_COMMODITIES} selected={commodities} onChange={setCommodities} />
+          <MultiSelectDropdown label={basis === "carbon" || basis === "environmental" ? "Outcome" : "Commodity"} options={commodityOptions} selected={commodities} onChange={setCommodities} />
           <MultiSelectDropdown label="Organization" options={organizationIds} labels={organizationNames} selected={selectedOrganizations} onChange={setSelectedOrganizations} />
           <MultiSelectDropdown label="State" options={US_STATES} selected={states} onChange={setStates} />
           <MultiSelectDropdown label="Certifications" options={certifications.labels} titles={certifications.titles} selected={selectedCertifications} onChange={setSelectedCertifications} />

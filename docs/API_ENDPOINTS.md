@@ -24,6 +24,7 @@ whatever is shown below, exactly as written in its own module.
 - [Taxonomy](#taxonomy) — `taxonomy_routes.py`
 - [Grower inventory](#grower-inventory) — `inventory_routes.py`
 - [Production data](#production-data) — `production_data_routes.py`
+- [Carbon & environmental-data listings](#carbon--environmental-data-listings) — `environmental.py`
 - [Offers (supply listings)](#offers-supply-listings) — `offers_routes.py`
 - [Bids (demand listings / RFQs)](#bids-demand-listings--rfqs) — `bids_routes.py`
 - [Responses & chat](#responses--chat) — `responses_routes.py`
@@ -242,6 +243,40 @@ commodity's row.
 Same role gate. Removes the attached document (storage errors are logged and swallowed).
 
 ---
+
+## Carbon & environmental-data listings
+
+Bids and offers aren't grain-only. Both `POST /api/bids` and `POST /api/offers` accept
+`asset_class: "carbon" | "environmental"` (omitted = `grain`, unchanged behavior below), modeled on
+meti-v2's Match page outcomes. The catalog lives in `backend/environmental.py` (mirrored in
+`frontend/src/listings/environmental.ts`); schema in `migrations/0062_environmental_listings.sql`.
+
+| `outcome_type` | Asset class | Stored `commodity` | Unit |
+|---|---|---|---|
+| `reductions_t` | carbon | Carbon Reductions | tCO2e |
+| `removals_t` | carbon | Carbon Removals | tCO2e |
+| `ci_commodity_t` | carbon | Low-CI Commodity | MT |
+| `water_quantity` | environmental | Water Savings | acre-ft |
+| `water_quality_n` | environmental | Avoided Nitrate | lbs |
+| `water_quality_p` | environmental | Avoided Phosphate | lbs |
+| `water_quality_tss` | environmental | Avoided Sediment | lbs |
+| `acres` | environmental | Field-Level Environmental Data | acres |
+
+Shared request fields: `outcome_type` (required, must belong to `asset_class`), `vintage_years`
+(required, four-digit years), optional `source_states`, `source_commodities`, `methodology`,
+`delivery_window_start`/`_end`. Quantity is in the outcome's unit and prices are USD per that unit.
+
+- **Bid:** `quantity`, `bid_price_usd_per_mt` (per unit), `required_practices`,
+  `required_certifications`, `required_data_requirements`, `allow_partial`, `status`. Stored with
+  `bid_type: "environmental_outcome"`.
+- **Offer:** `expected_volume`, `desired_price`, `min_order`, `practices` (stored as the listing's
+  practice override), `certifications`, `data_attributes`, `status`. Stored with
+  `quantity_basis: "outcome"` and `uom` = the outcome unit. No production data, inventory
+  draw-down, aggregation or on-behalf listing.
+
+Both browse endpoints take `asset_classes` and `vintage_years` (comma-separated). Responding to a
+carbon/environmental bid never checks grower inventory. `outcome_type`, `vintage_years` and
+`asset_class` are immutable after creation; `methodology` and `source_commodities` are editable.
 
 ## Offers (supply listings)
 

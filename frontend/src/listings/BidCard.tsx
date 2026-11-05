@@ -5,6 +5,8 @@ import { fromAcres } from "../units";
 import type { Bid } from "../types";
 import { BID_TYPE_LABELS } from "./constants";
 import { commodityImage } from "./commodityImages";
+import { ASSET_CLASS_LABELS, assetClassOf, bidUnit, isOutcomeListing } from "./environmental";
+import OutcomeDetails, { hasOutcomeDetails } from "./OutcomeDetails";
 import { formatCurrency, formatNumber } from "../format";
 import ProfileLink from "../profile/ProfileLink";
 import RespondedNote from "./RespondedNote";
@@ -26,7 +28,10 @@ export default function BidCard({
   // offers.acres_offered) — convert back to whatever unit the buyer originally posted in for
   // display, same round-trip units.ts's fromAcres exists for.
   const isAcresBid = bid.bid_type === "acres_for_contracting";
-  const qtyUnit = isAcresBid ? (bid.area_unit || "acres") : "MT";
+  const isOutcome = isOutcomeListing(bid);
+  const qtyUnit = bidUnit(bid);
+  // Grain bids are priced per MT (acres bids too); outcome bids per their own unit.
+  const priceUnit = isOutcome ? qtyUnit : "MT";
   const displayQuantity = isAcresBid && bid.quantity != null ? fromAcres(bid.quantity, bid.area_unit || "acres") : bid.quantity;
   const displayRemaining = isAcresBid && bid.remaining_quantity != null ? fromAcres(bid.remaining_quantity, bid.area_unit || "acres") : bid.remaining_quantity;
   const attributes = useTaxonomyTerms("attribute");
@@ -34,7 +39,7 @@ export default function BidCard({
   const certifications = useTaxonomyTerms("certification");
   const dataRequirements = useTaxonomyTerms("data_requirement");
   const hasDetails = bid.required_attributes.length > 0 || bid.required_practices.length > 0 ||
-    bid.required_certifications.length > 0 || bid.required_data_requirements.length > 0;
+    bid.required_certifications.length > 0 || bid.required_data_requirements.length > 0 || hasOutcomeDetails(bid);
   // Collapsed by default so every card starts at the same height regardless of how many
   // requirements a given bid has — previously this block rendered unconditionally inline,
   // making bids with lots of requirements visibly taller than ones without.
@@ -56,7 +61,10 @@ export default function BidCard({
             {isRecent(bid.created_at) && <NewBadge />}
           </div>
           <div className="mt-1 flex flex-wrap gap-1.5">
-            <Badge tone="blue">{BID_TYPE_LABELS[bid.bid_type] ?? bid.bid_type}</Badge>
+            {isOutcome
+              ? <Badge tone="green">{ASSET_CLASS_LABELS[assetClassOf(bid)]}</Badge>
+              : <Badge tone="blue">{BID_TYPE_LABELS[bid.bid_type] ?? bid.bid_type}</Badge>}
+            {isOutcome && (bid.vintage_years ?? []).length > 0 && <Badge tone="slate">Vintage {bid.vintage_years!.join(", ")}</Badge>}
             {bid.destination_country && <Badge tone="slate">{bid.destination_country}</Badge>}
             {!bid.allow_partial && <Badge tone="amber">Full amount only</Badge>}
             {bid.has_active_negotiation && <Badge tone="amber">In Negotiation</Badge>}
@@ -78,7 +86,7 @@ export default function BidCard({
 
         <div className="min-w-[100px] text-xs">
           <div className="text-slate-500">Bid Price</div>
-          <div className="text-sm text-slate-800">{bid.bid_price_usd_per_mt != null ? `${formatCurrency(bid.bid_price_usd_per_mt)}/MT` : "—"}</div>
+          <div className="text-sm text-slate-800">{bid.bid_price_usd_per_mt != null ? `${formatCurrency(bid.bid_price_usd_per_mt)}/${priceUnit}` : "—"}</div>
         </div>
 
         <div className="min-w-[150px] text-xs">
@@ -120,6 +128,7 @@ export default function BidCard({
 
       {hasDetails && expanded && (
         <div className="mt-3 space-y-1.5 text-sm text-slate-600">
+          <OutcomeDetails listing={bid} />
           {bid.required_attributes.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="font-medium text-slate-700">Required Attributes:</span>

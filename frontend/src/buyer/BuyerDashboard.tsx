@@ -8,6 +8,7 @@ import { fromAcres } from "../units";
 import RequirementsForm from "./RequirementsForm";
 import SupplySearch from "./SupplySearch";
 import CreateRfqForm from "./CreateRfqForm";
+import ListingComposer from "../listings/ListingComposer";
 import MyBidsTable from "./MyBidsTable";
 import PendingApprovalBids from "./PendingApprovalBids";
 import PendingRepresentationRequests from "./PendingRepresentationRequests";
@@ -18,6 +19,7 @@ import ProfileEditor from "../profile/ProfileEditor";
 import ProfileHomeCard from "../profile/ProfileHomeCard";
 import ServiceProviderDirectory from "../services/ServiceProviderDirectory";
 import MyServiceRequests from "../services/MyServiceRequests";
+import { bidUnit } from "../listings/environmental";
 
 type Tab = "home" | "requirements" | "supply" | "bids" | "responses" | "contracts" | "services" | "profile";
 
@@ -43,7 +45,7 @@ export default function BuyerDashboard({ accountName }: { accountName?: string |
 
   const listingsByUom = bids.filter((b) => b.status === "open").reduce<Record<string, number>>((acc, b) => {
     const isAcresBid = b.bid_type === "acres_for_contracting";
-    const unit = isAcresBid ? (b.area_unit || "acres") : "MT";
+    const unit = bidUnit(b);
     const quantity = isAcresBid && b.quantity != null ? fromAcres(b.quantity, b.area_unit || "acres") : b.quantity;
     if (quantity != null) acc[unit] = (acc[unit] || 0) + quantity;
     return acc;
@@ -115,7 +117,11 @@ export default function BuyerDashboard({ accountName }: { accountName?: string |
           </div>
           {showRfq && (
             <div className="mb-6">
-              <CreateRfqForm onCreated={(n) => { setShowRfq(false); setRfqNotice(n ?? null); refreshBids(); }} />
+              <ListingComposer
+                side="bid"
+                grainForm={<CreateRfqForm onCreated={(n) => { setShowRfq(false); setRfqNotice(n ?? null); refreshBids(); }} />}
+                onCreated={(n) => { setShowRfq(false); setRfqNotice(n ?? null); refreshBids(); }}
+              />
             </div>
           )}
         </div>

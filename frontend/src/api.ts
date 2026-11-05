@@ -7,8 +7,8 @@ import type {
   GrowerInventoryRow, JoinRequest, ListingResponse,
   MatchCandidate, MatchDeal, Me, MyStats, Notification, Offer, OfferDocument, OfferDocumentCategory, OfferDraft, OfferFilters, OwnProfile,
   ProductionDataDocument, ProductionDataDocumentCategory, ProductionDataDraft, ProductionDataEntry, ProductionDataOverview, ProfileLinkEntry, ProgramAffiliation,
-  ProgramOperatorOption, PublicProfile, QuantityBasis,
-  ResponseStatus, ServiceRequest, ServiceRequestStatus, ServiceProviderListing, SuggestedMatch, MatchStatus, TaxonomyTerm, TaxonomyTermType, Uom,
+  OutcomeListingDraft, ProgramOperatorOption, PublicProfile, QuantityBasis,
+  ResponseStatus, ServiceRequest, ServiceRequestStatus, ServiceProviderListing, SuggestedMatch, MatchStatus, TaxonomyTerm, TaxonomyTermType, GrainUom,
 } from "./types";
 
 function csrfToken(): string {
@@ -173,11 +173,11 @@ export const api = {
   growerInventory: () => request<{ inventory: GrowerInventoryRow[] }>("/api/grower-inventory"),
 
   growerInventoryRemaining: (commodity: string, marketingYear: string, quantityBasis: QuantityBasis = "grain") =>
-    request<{ remaining_volume: number | null; remaining_acres: number | null; uom: Uom | null; area_unit: AreaUnit | null }>(
+    request<{ remaining_volume: number | null; remaining_acres: number | null; uom: GrainUom | null; area_unit: AreaUnit | null }>(
       `/api/grower-inventory/remaining?commodity=${encodeURIComponent(commodity)}&marketing_year=${encodeURIComponent(marketingYear)}&quantity_basis=${quantityBasis}`,
     ),
 
-  putGrainInventory: (commodity: string, marketingYear: string, totalVolume: string, uom: Uom) =>
+  putGrainInventory: (commodity: string, marketingYear: string, totalVolume: string, uom: GrainUom) =>
     request<{ inventory: GrowerInventoryRow }>(
       `/api/grower-inventory/${encodeURIComponent(commodity)}/${encodeURIComponent(marketingYear)}`,
       { method: "PUT", body: JSON.stringify({ quantity_basis: "grain", total_volume: totalVolume, uom }) },
@@ -220,6 +220,8 @@ export const api = {
 
   browseBids: (filters: BidFilters = {}) => {
     const p = new URLSearchParams();
+    if (filters.assetClasses?.length) p.set("asset_classes", filters.assetClasses.join(","));
+    if (filters.vintageYears?.length) p.set("vintage_years", filters.vintageYears.join(","));
     if (filters.commodities?.length) p.set("commodities", filters.commodities.join(","));
     if (filters.bidTypes?.length) p.set("bid_types", filters.bidTypes.join(","));
     if (filters.attributes?.length) p.set("attributes", filters.attributes.join(","));
@@ -278,6 +280,8 @@ export const api = {
 
   browseOffers: (filters: OfferFilters = {}) => {
     const p = new URLSearchParams();
+    if (filters.assetClasses?.length) p.set("asset_classes", filters.assetClasses.join(","));
+    if (filters.vintageYears?.length) p.set("vintage_years", filters.vintageYears.join(","));
     if (filters.commodities?.length) p.set("commodities", filters.commodities.join(","));
     if (filters.states?.length) p.set("states", filters.states.join(","));
     if (filters.certifications?.length) p.set("certifications", filters.certifications.join(","));
@@ -315,6 +319,18 @@ export const api = {
     /** "draft" saves it without going live (no business verification needed). Default "open". */
     status?: "draft" | "open";
   }) => request<{ bid: Bid }>("/api/bids", { method: "POST", body: JSON.stringify(draft) }),
+
+  /** Carbon / environmental-data RFQ — see listings/environmental.ts. */
+  createOutcomeBid: (draft: OutcomeListingDraft & {
+    bid_price_usd_per_mt: string; required_practices: string[]; required_certifications: string[];
+    required_data_requirements: string[]; allow_partial: boolean; status?: "draft" | "open";
+  }) => request<{ bid: Bid }>("/api/bids", { method: "POST", body: JSON.stringify(draft) }),
+
+  /** Carbon / environmental-data offer — no production data or inventory (see offers_routes.py). */
+  createOutcomeOffer: (draft: OutcomeListingDraft & {
+    expected_volume: string; desired_price: string; min_order: string; practices: string[];
+    certifications: string[]; data_attributes: string[]; status?: "draft" | "published";
+  }) => request<{ offer: Offer }>("/api/offers", { method: "POST", body: JSON.stringify(draft) }),
 
   publishBid: (bidId: string) =>
     request<{ bid: Bid }>(`/api/bids/${bidId}/publish`, { method: "POST" }),

@@ -4,6 +4,7 @@ import { Badge, EmptyState, Spinner } from "../ui";
 import type { Contract, ContractStatus, DisputeCategory } from "../types";
 import { DISPUTE_CATEGORY_LABELS } from "./constants";
 import { formatCurrency, formatNumber } from "../format";
+import { contractUnit } from "./environmental";
 
 const DISPUTE_CATEGORIES = Object.keys(DISPUTE_CATEGORY_LABELS) as DisputeCategory[];
 
@@ -97,8 +98,8 @@ export default function ContractsTable({ showDisputeAction = true }: { showDispu
                   {c.commodity}{c.variety ? ` — ${c.variety}` : ""}
                 </td>
                 <td className="py-2 pr-4 text-slate-600">{c.counterparty_name || "—"}</td>
-                <td className="py-2 pr-4 text-slate-600">{formatNumber(c.final_volume)} MT</td>
-                <td className="py-2 pr-4 text-slate-600">{c.final_price_usd_per_mt != null ? `${formatCurrency(c.final_price_usd_per_mt)}/MT` : "—"}</td>
+                <td className="py-2 pr-4 text-slate-600">{formatNumber(c.final_volume)} {contractUnit(c.commodity)}</td>
+                <td className="py-2 pr-4 text-slate-600">{c.final_price_usd_per_mt != null ? `${formatCurrency(c.final_price_usd_per_mt)}/${contractUnit(c.commodity)}` : "—"}</td>
                 <td className="py-2 pr-4 text-slate-600">
                   {c.delivery_window_start && c.delivery_window_end ? `${c.delivery_window_start} – ${c.delivery_window_end}` : "—"}
                 </td>

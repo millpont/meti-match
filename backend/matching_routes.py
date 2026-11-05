@@ -12,6 +12,11 @@ Scoring rubric (0-100), computed from fields both offers and bids actually have:
     rate (see reputation.py). A brand new counterparty with no completed contracts yet gets a
     neutral midpoint score rather than being penalized for having no history.
 
+Carbon / environmental-data listings (see environmental.py) are pre-filtered to the same outcome
+(their commodity is the outcome label), and the 25-point commodity/variety component becomes
+vintage-year overlap (15) + source-state overlap (10) — the same overlap dimensions meti-v2's
+Match page matched on. Their implied value is quantity x price directly (same unit both sides).
+
 Note: unlike the old open_match engine, there's no meaningful "location match" between a US
 state (offers) and a destination country (bids), so that dimension from the original plan doc is
 replaced with the variety-match component above, which both listing types actually carry.
@@ -25,7 +30,8 @@ import sb
 import units
 import reputation
 from auth import requires_auth
-from production_data_routes import resolve_production, VISIBLE_COMMODITIES
+from production_data_routes import resolve_production
+from environmental import MARKET_COMMODITIES, is_environmental
 
 logger = logging.getLogger(__name__)
 matching_bp = Blueprint("matching", __name__)
@@ -96,11 +102,40 @@ def _score(offer, bid, counterparty_account_id):
     reasons = {}
     points = 0.0
 
+    if is_environmental(bid):
+        overlap_pts, overlap_reason = _environmental_overlap(offer, bid)
+        reasons["vintage_location_match"] = overlap_reason
+        points += overlap_pts
+        return _score_rest(offer, bid, counterparty_account_id, reasons, points)
+
     variety_matched = bool(bid.get("variety")) and bid.get("variety") == offer.get("variety")
     cv_pts = 25 if variety_matched else 18
     reasons["commodity_variety_match"] = {"variety_matched": variety_matched, "points": cv_pts}
     points += cv_pts
+    return _score_rest(offer, bid, counterparty_account_id, reasons, points)
 
+
+def _overlap_fraction(have, want):
+    """Share of `want` covered by `have`; None when either side didn't specify anything."""
+    have, want = set(have or []), set(want or [])
+    if not have or not want:
+        return None
+    return len(have & want) / len(want)
+
+
+def _environmental_overlap(offer, bid):
+    vintage = _overlap_fraction(offer.get("vintage_years"), bid.get("vintage_years"))
+    states = _overlap_fraction(offer.get("source_states"), bid.get("source_states"))
+    vintage_pts = round((vintage if vintage is not None else 0.5) * 15)
+    state_pts = round((states if states is not None else 0.5) * 10)
+    return vintage_pts + state_pts, {
+        "vintage_overlap_pct": None if vintage is None else round(vintage * 100),
+        "state_overlap_pct": None if states is None else round(states * 100),
+        "points": vintage_pts + state_pts,
+    }
+
+
+def _score_rest(offer, bid, counterparty_account_id, reasons, points):
     # Prefer the offer's own delivery window (comparing delivery-to-delivery is more correct) —
     # fall back to its harvest window when no delivery window is on file (e.g. an "available now"
     # listing was never required to set one), so the match signal doesn't go dark for those.
@@ -164,14 +199,18 @@ def preview_matches():
     })
     # Same hidden-crop rule as the Marketplace browse (an old Wheat listing's owner shouldn't be
     # matched against other hidden Wheat listings either).
-    if mine["commodity"] not in VISIBLE_COMMODITIES:
+    if mine["commodity"] not in MARKET_COMMODITIES:
         candidates = []
 
     # My own offer's MT-equivalent volume, computed once — used to show an implied total $
     # value against every bid candidate's $/MT price, so bushels/MT/acres-basis offers are all
     # comparable to a buyer's price regardless of which unit the offer itself was posted in.
     my_mt_equivalent = None
-    if listing_type == "offer":
+    environmental = is_environmental(mine)
+    if listing_type == "offer" and environmental:
+        # Outcome listings price per their own unit on both sides — no MT conversion.
+        my_mt_equivalent = _num(mine.get("expected_volume"))
+    elif listing_type == "offer":
         try:
             my_mt_equivalent = units.volume_to_mt(_num(mine.get("expected_volume")), mine.get("uom"), mine.get("commodity"))
         except ValueError:
@@ -200,7 +239,10 @@ def preview_matches():
             entry["uom"] = c.get("uom")
             entry["desired_price"] = _num(c.get("desired_price"))
             try:
-                entry["mt_equivalent"] = units.volume_to_mt(entry["expected_volume"], c.get("uom"), c.get("commodity"))
+                entry["mt_equivalent"] = (
+                    None if environmental
+                    else units.volume_to_mt(entry["expected_volume"], c.get("uom"), c.get("commodity"))
+                )
             except ValueError:
                 entry["mt_equivalent"] = None
         scored.append(entry)

@@ -2,19 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
 import { EmptyState, MultiSelectDropdown, Spinner, NumberInput } from "../ui";
 import { useTaxonomyTerms } from "../useTaxonomyTerms";
-import type { Bid, BidFilters, Organization } from "../types";
+import type { AssetClass, Bid, BidFilters, Organization } from "../types";
 import { BID_TYPE_LABELS, GRAIN_COMMODITIES } from "./constants";
 import { COUNTRIES } from "../constants";
 import BidCard from "./BidCard";
 import RespondAmountModal from "./RespondAmountModal";
+import { bidUnit, isOutcomeListing } from "./environmental";
+import { ASSET_CLASS_LABELS, OUTCOME_LABELS } from "./environmental";
 
 const BID_TYPES = Object.keys(BID_TYPE_LABELS);
+const MARKET_OPTIONS = Object.keys(ASSET_CLASS_LABELS) as AssetClass[];
+const COMMODITY_OPTIONS = [...GRAIN_COMMODITIES, ...OUTCOME_LABELS];
+
 
 /** Browse open buyer bids and respond to one. Shared between grower and program operator
  * (pages 9/12 in the mockup are the same screen for both roles), and also used read-only-ish
  * in the marketplace hub — there, `externalFilters` comes from the hub's shared MarketFilterBar
  * instead of the filter card below, which is hidden in that mode. */
 export default function BidBrowseTable({ externalFilters }: { externalFilters?: BidFilters } = {}) {
+  const [markets, setMarkets] = useState<AssetClass[]>([]);
   const [commodities, setCommodities] = useState<string[]>([]);
   const [bidTypes, setBidTypes] = useState<string[]>([]);
   const [selectedSustainabilityAttributes, setSelectedSustainabilityAttributes] = useState<string[]>([]);
@@ -51,7 +57,7 @@ export default function BidBrowseTable({ externalFilters }: { externalFilters?: 
   const search = (overrideFilters?: BidFilters) => {
     const requestId = ++latestRequestId.current;
     const f = overrideFilters ?? externalFilters ?? {
-      commodities, bidTypes,
+      assetClasses: markets, commodities, bidTypes,
       attributes: [...selectedSustainabilityAttributes, ...selectedSpecialtyAttributes],
       destinationCountries, quantityMin, quantityMax, organizations: selectedOrganizations,
     };
@@ -61,11 +67,12 @@ export default function BidBrowseTable({ externalFilters }: { externalFilters?: 
   };
 
   const hasFilters =
-    commodities.length > 0 || bidTypes.length > 0 || selectedSustainabilityAttributes.length > 0 ||
+    markets.length > 0 || commodities.length > 0 || bidTypes.length > 0 || selectedSustainabilityAttributes.length > 0 ||
     selectedSpecialtyAttributes.length > 0 || destinationCountries.length > 0 ||
     selectedOrganizations.length > 0 || !!quantityMin || !!quantityMax;
 
   const clearFilters = () => {
+    setMarkets([]);
     setCommodities([]);
     setBidTypes([]);
     setSelectedSustainabilityAttributes([]);
@@ -100,7 +107,8 @@ export default function BidBrowseTable({ externalFilters }: { externalFilters?: 
       {!externalFilters && (
         <div className="card mb-4 p-4">
           <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-            <MultiSelectDropdown label="Commodity" options={GRAIN_COMMODITIES} selected={commodities} onChange={setCommodities} />
+            <MultiSelectDropdown label="Market" options={MARKET_OPTIONS} labels={ASSET_CLASS_LABELS} selected={markets} onChange={(v) => setMarkets(v as AssetClass[])} />
+            <MultiSelectDropdown label="Commodity / Outcome" options={COMMODITY_OPTIONS} selected={commodities} onChange={setCommodities} />
             <MultiSelectDropdown label="Organization" options={organizationIds} labels={organizationNames} selected={selectedOrganizations} onChange={setSelectedOrganizations} />
             <MultiSelectDropdown label="Bid Type" options={BID_TYPES} selected={bidTypes} onChange={setBidTypes} />
             <MultiSelectDropdown label="Required Sustainability Attributes" options={sustainabilityAttributes.labels} titles={sustainabilityAttributes.titles} selected={selectedSustainabilityAttributes} onChange={setSelectedSustainabilityAttributes} />
@@ -143,9 +151,9 @@ export default function BidBrowseTable({ externalFilters }: { externalFilters?: 
       {respondingBid && (
         <RespondAmountModal
           requestedAmount={respondingBid.remaining_quantity ?? respondingBid.quantity}
-          unit={respondingBid.bid_type === "acres_for_contracting" ? "acres" : "MT"}
+          unit={isOutcomeListing(respondingBid) ? bidUnit(respondingBid) : respondingBid.bid_type === "acres_for_contracting" ? "acres" : "MT"}
           allowPartial={respondingBid.allow_partial}
-          forGrowerBidInventory={hasInventory ? {
+          forGrowerBidInventory={hasInventory && !isOutcomeListing(respondingBid) ? {
             commodity: respondingBid.commodity,
             quantityBasis: respondingBid.bid_type === "acres_for_contracting" ? "acres" : "grain",
           } : undefined}

@@ -17,14 +17,19 @@ from responses_routes import (
 from representations_routes import active_represented_buyer_ids, require_trader
 from notifications_routes import notify
 from validation import date_range_error, merged_date_range_error
-from production_data_routes import VISIBLE_COMMODITIES, VISIBLE_COMMODITY_FILTER
+from production_data_routes import VISIBLE_COMMODITIES
+from environmental import (
+    ENVIRONMENTAL_BID_TYPE, MARKET_COMMODITIES, MARKET_COMMODITY_FILTER,
+    parse_environmental_fields, unit_for,
+)
 from business_verification import require_verified
 
 logger = logging.getLogger(__name__)
 bids_bp = Blueprint("bids", __name__)
 
 TABLE = "bids"
-VALID_BID_TYPE = ("available_grain", "acres_for_contracting", "volumes_for_contracting")
+VALID_BID_TYPE = ("available_grain", "acres_for_contracting", "volumes_for_contracting")  # grain bids
+VALID_ASSET_CLASS = ("grain", "carbon", "environmental")
 VALID_AREA_UNIT = ("acres", "hectares")
 
 
@@ -52,6 +57,11 @@ def _as_list(v):
     if v is None:
         return []
     return v if isinstance(v, list) else [v]
+
+
+def _unit(bid):
+    """The unit a bid's quantity is in, for notification copy."""
+    return unit_for(bid) or ("acres" if bid.get("bid_type") == "acres_for_contracting" else "MT")
 
 
 def _bid_json(row):
@@ -128,13 +138,28 @@ def create_bid():
         if unverified:
             return unverified
 
-    for field in ("commodity", "bid_type", "quantity"):
-        if not data.get(field):
-            return jsonify({"error": f"Missing required field: {field}"}), 400
-    if data["commodity"] not in VISIBLE_COMMODITIES:
-        return jsonify({"error": f"commodity must be one of {VISIBLE_COMMODITIES}"}), 400
-    if data["bid_type"] not in VALID_BID_TYPE:
-        return jsonify({"error": f"bid_type must be one of {VALID_BID_TYPE}"}), 400
+    asset_class = data.get("asset_class") or "grain"
+    if asset_class not in VALID_ASSET_CLASS:
+        return jsonify({"error": f"asset_class must be one of {VALID_ASSET_CLASS}"}), 400
+    env_fields = None
+    if asset_class == "grain":
+        for field in ("commodity", "bid_type", "quantity"):
+            if not data.get(field):
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+        if data["commodity"] not in VISIBLE_COMMODITIES:
+            return jsonify({"error": f"commodity must be one of {VISIBLE_COMMODITIES}"}), 400
+        if data["bid_type"] not in VALID_BID_TYPE:
+            return jsonify({"error": f"bid_type must be one of {VALID_BID_TYPE}"}), 400
+    else:
+        # Carbon / environmental-data RFQ — see environmental.py. The outcome label stands in
+        # for commodity, and the quantity is in the outcome's own unit.
+        env_fields, env_err = parse_environmental_fields(data)
+        if env_err:
+            return jsonify({"error": env_err}), 400
+        data = {**data, "commodity": env_fields["commodity"], "bid_type": ENVIRONMENTAL_BID_TYPE, "variety": None}
+    quantity = _num(data.get("quantity"))
+    if quantity is None or quantity <= 0:
+        return jsonify({"error": "Missing required field: quantity"}), 400
     area_unit = data.get("area_unit") or None
     if area_unit and area_unit not in VALID_AREA_UNIT:
         return jsonify({"error": f"area_unit must be one of {VALID_AREA_UNIT}"}), 400
@@ -160,7 +185,7 @@ def create_bid():
         "commodity": data["commodity"],
         "variety": data.get("variety") or None,
         "bid_type": data["bid_type"],
-        "quantity": _num(data.get("quantity")),
+        "quantity": quantity,
         # Display-only — quantity itself is always normalized to acres before it gets here (same
         # convention as offers.acres_offered/area_unit), only meaningful for acres_for_contracting.
         "area_unit": area_unit if data["bid_type"] == "acres_for_contracting" else None,
@@ -178,13 +203,18 @@ def create_bid():
         "on_behalf_of_buyer_account_id": on_behalf_of,
         "buyer_approval_status": "pending" if on_behalf_of else "not_required",
     }
+    # Grain rows rely on the column default, so grain bids don't depend on migration 0062.
+    if env_fields:
+        row.update({k: env_fields[k] for k in (
+            "asset_class", "outcome_type", "vintage_years", "source_states", "source_commodities", "methodology",
+        )})
     created = sb.insert(TABLE, row)
     if on_behalf_of:
         label = f"{row['commodity']} — {row['variety']}" if row.get("variety") else row["commodity"]
         notify(
             on_behalf_of, "bid_approval_requested",
             title=f"A service provider wants to place a {label} bid on your behalf",
-            body=f"{row['quantity']:g} {'acres' if row['bid_type'] == 'acres_for_contracting' else 'MT'} — review and approve or decline.",
+            body=f"{row['quantity']:g} {_unit(row)} — review and approve or decline.",
             link_type="bid", link_id=created["id"],
         )
     return jsonify({"success": True, "bid": _bid_json(created)})
@@ -203,11 +233,13 @@ def browse_bids():
     qty_min = _num(request.args.get("quantity_min"))
     qty_max = _num(request.args.get("quantity_max"))
     organizations = [o.strip() for o in request.args.get("organizations", "").split(",") if o.strip()]
+    asset_classes = [a.strip() for a in request.args.get("asset_classes", "").split(",") if a.strip()]
+    vintage_years = [y.strip() for y in request.args.get("vintage_years", "").split(",") if y.strip()]
 
     # buyer_approval_status=neq.pending excludes an on-behalf-of bid still awaiting the buyer's
     # approval — status alone can't do this. (Drafts are excluded by status=open.)
     rows = sb.select(TABLE, {
-        "status": "eq.open", "buyer_approval_status": "neq.pending", "commodity": VISIBLE_COMMODITY_FILTER,
+        "status": "eq.open", "buyer_approval_status": "neq.pending", "commodity": MARKET_COMMODITY_FILTER,
         "order": "created_at.desc", "select": "*",
     })
     matched_rows = []
@@ -216,7 +248,11 @@ def browse_bids():
         # browse_offers' organization filter.
         if organizations and str(r.get("on_behalf_of_buyer_account_id") or r.get("created_by") or "") not in organizations:
             continue
+        if asset_classes and (r.get("asset_class") or "grain") not in asset_classes:
+            continue
         if commodities and r.get("commodity") not in commodities:
+            continue
+        if vintage_years and not (set(r.get("vintage_years") or []) & set(vintage_years)):
             continue
         if bid_types and r.get("bid_type") not in bid_types:
             continue
@@ -358,8 +394,9 @@ EDITABLE_BID_FIELDS = (
     "variety", "bid_price_usd_per_mt", "delivery_window_start", "delivery_window_end",
     "required_attributes", "required_practices", "required_certifications",
     "required_data_requirements", "required_attribute_notes", "destination_country", "allow_partial",
+    "source_states", "source_commodities", "methodology",
 )
-IMMUTABLE_BID_FIELDS = ("commodity", "bid_type", "quantity", "area_unit")
+IMMUTABLE_BID_FIELDS = ("commodity", "bid_type", "quantity", "area_unit", "asset_class", "outcome_type", "vintage_years")
 
 
 @bids_bp.route("/api/bids/<bid_id>", methods=["PATCH"])
@@ -393,8 +430,13 @@ def update_bid(bid_id):
             continue
         if f == "bid_price_usd_per_mt":
             patch[f] = _num(data[f])
-        elif f in ("required_attributes", "required_practices", "required_certifications", "required_data_requirements"):
+        elif f in ("required_attributes", "required_practices", "required_certifications", "required_data_requirements",
+                   "source_commodities"):
             patch[f] = _as_list(data[f])
+        elif f == "source_states":
+            patch[f] = sorted({str(x).strip().upper() for x in _as_list(data[f]) if str(x).strip()})
+        elif f == "methodology":
+            patch[f] = (data[f] or "").strip()[:200] or None
         elif f == "required_attribute_notes":
             patch[f] = data[f] if isinstance(data[f], dict) else {}
         elif f == "allow_partial":
@@ -424,8 +466,8 @@ def publish_bid(bid_id):
         return jsonify({"error": "only the creator can publish this listing"}), 403
     if row["status"] != "draft":
         return jsonify({"error": "only a draft can be published"}), 400
-    if row["commodity"] not in VISIBLE_COMMODITIES:
-        return jsonify({"error": f"commodity must be one of {VISIBLE_COMMODITIES}"}), 400
+    if row["commodity"] not in MARKET_COMMODITIES:
+        return jsonify({"error": f"commodity must be one of {MARKET_COMMODITIES}"}), 400
     unverified = require_verified(acct, session.get("role"), "publish a listing")
     if unverified:
         return unverified

@@ -3,6 +3,7 @@ import { api } from "../api";
 import { Badge } from "../ui";
 import { fromAcres } from "../units";
 import type { Bid } from "../types";
+import { bidUnit } from "../listings/environmental";
 
 /** Bids a service provider (Trader) wants to place on this buyer's behalf, awaiting approval —
  * see bids_routes.py's on_behalf_of_buyer_account_id handling. Nothing renders when empty. */
@@ -62,7 +63,7 @@ export default function PendingApprovalBids() {
           <div key={b.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand-edge p-3">
             <div>
               <div className="text-sm font-medium text-slate-800">
-                {b.commodity}{b.variety ? ` — ${b.variety}` : ""} · {displayQuantity != null ? (isAcresBid ? displayQuantity.toFixed(1) : displayQuantity) : "—"} {isAcresBid ? (b.area_unit || "acres") : "MT"}
+                {b.commodity}{b.variety ? ` — ${b.variety}` : ""} · {displayQuantity != null ? (isAcresBid ? displayQuantity.toFixed(1) : displayQuantity) : "—"} {bidUnit(b)}
               </div>
               <div className="text-xs text-slate-500">From {b.service_provider_name || "your service provider"}</div>
             </div>

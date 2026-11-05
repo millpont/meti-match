@@ -11,7 +11,7 @@ import { formatCurrency, formatNumber } from "../format";
 import SupplyOfferCard from "./SupplyOfferCard";
 import type {
   AreaUnit, CountyOption, EnrolledGrowerOption, GrowerInventoryRow, Offer, OfferDocumentCategory, OfferDraft, OfferLocation,
-  PriceType, ProductionDataEntry, QuantityYieldUnit, Uom, YieldUnit,
+  PriceType, ProductionDataEntry, QuantityYieldUnit, GrainUom, YieldUnit,
 } from "../types";
 import {
   COMMODITY_VARIETIES, GRAIN_COMMODITIES, PRICE_TYPE_OPTIONS, UOM_OPTIONS, marketingYears,
@@ -26,7 +26,7 @@ const AREA_UNITS: AreaUnit[] = ["acres", "hectares"];
 // as a secondary Yield Unit choice within Bushels & Acres — Total Volume is still computed/shown
 // in bushels either way (see units.ts's yieldToVolume).
 type UnitSystemId = "bushels_acres" | "metric_tons_hectares";
-type UnitSystemConfig = { id: UnitSystemId; label: string; areaUnit: AreaUnit; uom: Uom; yieldUnits: QuantityYieldUnit[] };
+type UnitSystemConfig = { id: UnitSystemId; label: string; areaUnit: AreaUnit; uom: GrainUom; yieldUnits: QuantityYieldUnit[] };
 // A fixed-length tuple (not a plain array) so UNIT_SYSTEMS[0] is known non-undefined even under
 // noUncheckedIndexedAccess — this is the fallback/default system, not an arbitrary pick.
 const UNIT_SYSTEMS: readonly [UnitSystemConfig, UnitSystemConfig] = [
@@ -138,7 +138,7 @@ export default function OfferForm({ onCreated, forOperator }: { onCreated: () =>
   const { requireVerified } = useVerification();
   const [inventoryRows, setInventoryRows] = useState<GrowerInventoryRow[] | null>(null);
   const [remainingPreview, setRemainingPreview] = useState<{
-    remaining_volume: number | null; remaining_acres: number | null; uom: Uom | null; area_unit: AreaUnit | null;
+    remaining_volume: number | null; remaining_acres: number | null; uom: GrainUom | null; area_unit: AreaUnit | null;
   } | null>(null);
 
   const sustainabilityAttributes = useTaxonomyTerms("attribute", "sustainability");
@@ -606,7 +606,7 @@ export default function OfferForm({ onCreated, forOperator }: { onCreated: () =>
                   <NumberInput value={draft.expected_volume}
                     onChange={(v) => set("expected_volume", v)} />
                 )}
-                <select className="field w-32 shrink-0" aria-label="Unit" value={draft.uom} onChange={(e) => set("uom", e.target.value as Uom)}>
+                <select className="field w-32 shrink-0" aria-label="Unit" value={draft.uom} onChange={(e) => set("uom", e.target.value as GrainUom)}>
                   {UOM_OPTIONS.map((u) => <option key={u} value={u}>{u}</option>)}
                 </select>
               </div>

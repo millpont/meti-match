@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { ConfirmDialog, Spinner, NumberInput } from "../ui";
-import type { AreaUnit, GrowerInventoryRow, QuantityBasis, Uom } from "../types";
+import type { AreaUnit, GrowerInventoryRow, QuantityBasis, GrainUom } from "../types";
 import { GRAIN_COMMODITIES, UOM_OPTIONS, marketingYears } from "../listings/constants";
 
 const MARKETING_YEARS = marketingYears();
@@ -19,7 +19,7 @@ export default function GrainInventory({ refreshSignal }: { refreshSignal?: numb
   const [commodity, setCommodity] = useState<string>(GRAIN_COMMODITIES[0]);
   const [marketingYear, setMarketingYear] = useState<string>(MARKETING_YEARS[1] ?? MARKETING_YEARS[0] ?? "");
   const [totalVolume, setTotalVolume] = useState("");
-  const [uom, setUom] = useState<Uom>("bushels");
+  const [uom, setUom] = useState<GrainUom>("bushels");
   const [totalAcres, setTotalAcres] = useState("");
   const [areaUnit, setAreaUnit] = useState<AreaUnit>("acres");
   const [saving, setSaving] = useState(false);
@@ -109,7 +109,7 @@ export default function GrainInventory({ refreshSignal }: { refreshSignal?: numb
             <div className="flex gap-2">
               <NumberInput placeholder="Total volume" value={totalVolume}
                 onChange={(v) => setTotalVolume(v)} />
-              <select className="field" value={uom} onChange={(e) => setUom(e.target.value as Uom)}>
+              <select className="field" value={uom} onChange={(e) => setUom(e.target.value as GrainUom)}>
                 {UOM_OPTIONS.map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>

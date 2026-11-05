@@ -3,6 +3,7 @@ import { api } from "../api";
 import { Spinner } from "../ui";
 import type { MatchCandidate } from "../types";
 import MatchScoreRing from "./MatchScoreRing";
+import { contractUnit } from "./environmental";
 
 /** Ranked, scored counterparties for one of the caller's own listings (page 18's "Signal Match
  * Results"). `listingType`/`listingId` identify the listing being matched; the candidates are
@@ -64,12 +65,14 @@ export default function MatchResults({
                     {m.commodity}{m.variety ? ` — ${m.variety}` : ""}
                   </div>
                   <div className="mt-1 text-xs text-slate-500">
-                    {quantity ?? "—"} {m.candidate_type === "offer" ? (m.uom ?? "") : "MT"}
+                    {quantity ?? "—"} {m.candidate_type === "offer" ? (m.uom ?? "") : contractUnit(m.commodity)}
                     {m.candidate_type === "offer" && m.uom === "bushels" && m.mt_equivalent != null &&
                       ` (${m.mt_equivalent.toFixed(1)} MT)`}
                     {m.candidate_type === "bid" && m.implied_total_value_usd != null &&
                       ` · ≈ $${m.implied_total_value_usd.toLocaleString()} at their price`}
-                    {m.rationale.commodity_variety_match.variety_matched && " · Variety match"}
+                    {m.rationale.commodity_variety_match?.variety_matched && " · Variety match"}
+                    {m.rationale.vintage_location_match?.vintage_overlap_pct != null &&
+                      ` · Vintage ${m.rationale.vintage_location_match.vintage_overlap_pct}%`}
                     {" · "}Delivery window {m.rationale.delivery_window_overlap.overlap_pct}%
                     {!m.rationale.delivery_window_overlap.known && " (est.)"}
                     {" · "}Quality {m.rationale.quality_attribute_match.covered_pct}% covered

@@ -10,7 +10,8 @@ import storage
 import units
 import inventory_routes
 from auth import requires_auth
-from production_data_routes import resolve_production, MAX_UPLOAD_BYTES, NONE_OPTION, VISIBLE_COMMODITIES, VISIBLE_COMMODITY_FILTER
+from production_data_routes import resolve_production, MAX_UPLOAD_BYTES, NONE_OPTION, VISIBLE_COMMODITIES
+from environmental import MARKET_COMMODITY_FILTER, OUTCOME_QUANTITY_BASIS, parse_environmental_fields
 from responses_routes import (
     has_active_negotiation, remaining_amount_for_listing,
     active_negotiation_listing_ids, accepted_proposed_volumes_by_listing,
@@ -172,6 +173,8 @@ def create_offer():
         return jsonify({"error": "only growers and program operators can create offers"}), 403
 
     data = request.get_json() or {}
+    if (data.get("asset_class") or "grain") != "grain":
+        return _create_environmental_offer(acct, data)
     if not data.get("commodity"):
         return jsonify({"error": "Missing required field: commodity"}), 400
     if data["commodity"] not in VISIBLE_COMMODITIES:
@@ -390,6 +393,72 @@ def create_offer():
     return jsonify({"success": True, "offer": _offer_json(created)})
 
 
+def _create_environmental_offer(acct, data):
+    """A carbon or environmental-data offer (see environmental.py). None of the grain machinery
+    applies: no production data, no grower inventory draw-down, no aggregation or on-behalf
+    listing — quantity is simply a volume of the outcome in its own unit."""
+    env_fields, env_err = parse_environmental_fields(data)
+    if env_err:
+        return jsonify({"error": env_err}), 400
+    if data.get("on_behalf_of_grower_account_id") or data.get("aggregate_growers"):
+        return jsonify({"error": "carbon and environmental-data listings can't be listed on a grower's behalf or aggregated yet"}), 400
+    status = data.get("status", "published")
+    if status not in ("draft", "published"):
+        return jsonify({"error": "status must be draft or published"}), 400
+    if status != "draft":
+        unverified = require_verified(acct, session.get("role"), "publish a listing")
+        if unverified:
+            return unverified
+    expected_volume = _num(data.get("expected_volume"))
+    if expected_volume is None or expected_volume <= 0:
+        return jsonify({"error": "Missing required field: expected_volume"}), 400
+    price = _num(data.get("desired_price"))
+    if price is not None and price < 0:
+        return jsonify({"error": "desired_price must be non-negative"}), 400
+    listing_timing = data.get("listing_timing", "available")
+    if listing_timing not in VALID_LISTING_TIMING:
+        return jsonify({"error": f"listing_timing must be one of {VALID_LISTING_TIMING}"}), 400
+    if listing_timing == "future" and not (data.get("delivery_window_start") and data.get("delivery_window_end")):
+        return jsonify({"error": "delivery_window_start and delivery_window_end are required for a Future listing"}), 400
+    range_err = date_range_error(data.get("delivery_window_start"), data.get("delivery_window_end"), "Delivery Window")
+    if range_err:
+        return jsonify({"error": range_err}), 400
+    practices = [p for p in _as_list(data.get("practices")) if p and p != NONE_OPTION]
+
+    row = {
+        "created_by": acct,
+        "commodity": env_fields["commodity"],
+        "asset_class": env_fields["asset_class"],
+        "outcome_type": env_fields["outcome_type"],
+        "vintage_years": env_fields["vintage_years"],
+        "source_states": env_fields["source_states"],
+        "source_commodities": env_fields["source_commodities"],
+        "methodology": env_fields["methodology"],
+        # The newest vintage doubles as marketing_year so year-sorted views still order these.
+        "marketing_year": env_fields["vintage_years"][0],
+        "expected_volume": expected_volume,
+        "uom": env_fields["unit"],
+        "quantity_basis": OUTCOME_QUANTITY_BASIS,
+        "listing_timing": listing_timing,
+        "delivery_window_start": data.get("delivery_window_start") or None,
+        "delivery_window_end": data.get("delivery_window_end") or None,
+        "price_type": "fixed" if price is not None else None,
+        "desired_price": price,
+        "min_order": _num(data.get("min_order")),
+        "certifications": _as_list(data.get("certifications")),
+        "data_attributes": _as_list(data.get("data_attributes")),
+        "locations": [{"state": st, "counties": []} for st in env_fields["source_states"]],
+        # Stored as the listing's practice override, so the Marketplace practice filter and the
+        # resolved `production.conservation_practices` view work the same as for grain offers.
+        "override_conservation_practices": practices,
+        "status": status,
+        "on_behalf_of_grower_account_id": None,
+        "grower_approval_status": "not_required",
+    }
+    created = sb.insert(TABLE, row)
+    return jsonify({"success": True, "offer": _offer_json(created)})
+
+
 @offers_bp.route("/api/offers/mine", methods=["GET"])
 @requires_auth
 def my_offers():
@@ -513,9 +582,11 @@ def browse_offers():
     qty_max = _num(request.args.get("quantity_max"))
     quantity_basis = request.args.get("quantity_basis")
     organizations = [o.strip() for o in request.args.get("organizations", "").split(",") if o.strip()]
+    asset_classes = [a.strip() for a in request.args.get("asset_classes", "").split(",") if a.strip()]
+    vintage_years = [y.strip() for y in request.args.get("vintage_years", "").split(",") if y.strip()]
 
     rows = sb.select(TABLE, {
-        "status": "eq.published", "commodity": VISIBLE_COMMODITY_FILTER, "order": "created_at.desc", "select": "*",
+        "status": "eq.published", "commodity": MARKET_COMMODITY_FILTER, "order": "created_at.desc", "select": "*",
     })
     matched_rows = []
     for r in rows:
@@ -525,7 +596,11 @@ def browse_offers():
         # "economically relevant account" the production-data resolution already uses above.
         if organizations and str(r.get("on_behalf_of_grower_account_id") or r.get("created_by") or "") not in organizations:
             continue
+        if asset_classes and (r.get("asset_class") or "grain") not in asset_classes:
+            continue
         if commodities and r.get("commodity") not in commodities:
+            continue
+        if vintage_years and not (set(r.get("vintage_years") or []) & set(vintage_years)):
             continue
         if states and not ({(loc.get("state") or "").upper() for loc in (r.get("locations") or [])} & set(states)):
             continue
@@ -574,10 +649,12 @@ EDITABLE_OFFER_FIELDS = (
     "harvest_start", "harvest_end", "delivery_window_start", "delivery_window_end", "sustainability_attributes",
     "specialty_attributes", "certifications", "locations", "override_conservation_practices",
     "test_weight", "bcfm_pct", "seed_variety", "tannin_level_max", "non_tannin_sorghum", "bnfm_pct",
+    "source_commodities", "methodology", "data_attributes",
 )
 IMMUTABLE_OFFER_FIELDS = (
     "commodity", "quantity_basis", "listing_timing", "expected_volume", "uom", "acres_offered",
     "area_unit", "yield_rate", "yield_unit", "marketing_year",
+    "asset_class", "outcome_type", "vintage_years", "source_states",
 )
 
 
@@ -617,8 +694,11 @@ def update_offer(offer_id):
         if f in ("desired_price", "protein_pct", "moisture_pct_max", "min_order",
                   "test_weight", "bcfm_pct", "tannin_level_max", "bnfm_pct"):
             patch[f] = _num(data[f])
-        elif f in ("sustainability_attributes", "specialty_attributes", "certifications"):
+        elif f in ("sustainability_attributes", "specialty_attributes", "certifications",
+                   "source_commodities", "data_attributes"):
             patch[f] = _as_list(data[f])
+        elif f == "methodology":
+            patch[f] = (data[f] or "").strip()[:200] or None
         elif f == "locations":
             patch[f] = data[f] if isinstance(data[f], list) else []
         elif f == "override_conservation_practices":

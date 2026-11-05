@@ -5,6 +5,7 @@ import { IconCircle } from "../ui";
 import { ChartBarIcon, GavelIcon, WheatIcon } from "../icons";
 import type { Offer } from "../types";
 import OfferForm from "../listings/OfferForm";
+import ListingComposer from "../listings/ListingComposer";
 import MyOffersTable from "../listings/MyOffersTable";
 import BidBrowseTable from "../listings/BidBrowseTable";
 import ResponsesPanel from "../listings/ResponsesPanel";
@@ -114,7 +115,7 @@ export default function GrowerDashboard({ accountName }: { accountName?: string 
             <h2 className="text-base font-semibold text-slate-900">Your Listings</h2>
             <MyOffersTable offers={offers} onChanged={() => setInventoryRefreshSignal((n) => n + 1)} />
           </div>
-          <OfferForm onCreated={refreshOffers} />
+          <ListingComposer side="offer" grainForm={<OfferForm onCreated={refreshOffers} />} onCreated={refreshOffers} />
         </div>
       )}
 

@@ -9,6 +9,7 @@ import RegisterGrowerForm from "./RegisterGrowerForm";
 import InviteGrowerCard from "./InviteGrowerCard";
 import GrowersTable from "./GrowersTable";
 import OfferForm from "../listings/OfferForm";
+import ListingComposer from "../listings/ListingComposer";
 import MyOffersTable from "../listings/MyOffersTable";
 import BidBrowseTable from "../listings/BidBrowseTable";
 import ResponsesPanel from "../listings/ResponsesPanel";
@@ -145,7 +146,7 @@ export default function OperatorDashboard({ accountName }: { accountName?: strin
 
       {tab === "offers" && (
         <div className="space-y-6">
-          <OfferForm onCreated={refreshOffers} forOperator />
+          <ListingComposer side="offer" grainForm={<OfferForm onCreated={refreshOffers} forOperator />} onCreated={refreshOffers} />
           <div className="card p-5">
             <h2 className="text-base font-semibold text-slate-900">Your Listings</h2>
             <MyOffersTable offers={offers} />

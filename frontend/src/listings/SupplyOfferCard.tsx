@@ -7,10 +7,10 @@ import { formatNumber, rotationLabel } from "../format";
 import ProfileLink from "../profile/ProfileLink";
 import RespondedNote from "./RespondedNote";
 import { useVerification } from "../profile/VerificationPrompt";
+import { isOutcomeListing } from "./environmental";
+import OutcomeOfferCard from "./OutcomeOfferCard";
 
-export default function SupplyOfferCard({
-  offer, responded, responding, onRespond, preview,
-}: {
+export interface OfferCardProps {
   offer: Offer;
   responded: boolean;
   responding: boolean;
@@ -18,7 +18,15 @@ export default function SupplyOfferCard({
   /** Render as the pre-publish review of an unsaved draft: no respond button, details expanded
    * so everything picked is visible at once. */
   preview?: boolean;
-}) {
+}
+
+/** Carbon / environmental-data offers have no grain spec or production data to show, so they get
+ * their own card layout (OutcomeOfferCard). */
+export default function SupplyOfferCard(props: OfferCardProps) {
+  return isOutcomeListing(props.offer) ? <OutcomeOfferCard {...props} /> : <GrainOfferCard {...props} />;
+}
+
+function GrainOfferCard({ offer, responded, responding, onRespond, preview }: OfferCardProps) {
   const img = offer.quantity_basis === "acres" ? acresPlaceholderImage() : commodityImage(offer.commodity);
   const title = offer.variety || offer.commodity;
   const p = offer.production;

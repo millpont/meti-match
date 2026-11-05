@@ -14,6 +14,7 @@ import MyStatsRow from "../listings/MyStatsRow";
 import ProfileEditor from "../profile/ProfileEditor";
 import ProfileHomeCard from "../profile/ProfileHomeCard";
 import PendingServiceRequests from "./PendingServiceRequests";
+import { bidUnit } from "../listings/environmental";
 
 type Tab = "home" | "buyers" | "bids" | "responses" | "contracts" | "service_requests" | "profile";
 
@@ -62,7 +63,7 @@ export default function ServiceProviderDashboard({ accountName, isTrader }: { ac
 
   const listingsByUom = bids.filter((b) => b.status === "open").reduce<Record<string, number>>((acc, b) => {
     const isAcresBid = b.bid_type === "acres_for_contracting";
-    const unit = isAcresBid ? (b.area_unit || "acres") : "MT";
+    const unit = bidUnit(b);
     const quantity = isAcresBid && b.quantity != null ? fromAcres(b.quantity, b.area_unit || "acres") : b.quantity;
     if (quantity != null) acc[unit] = (acc[unit] || 0) + quantity;
     return acc;

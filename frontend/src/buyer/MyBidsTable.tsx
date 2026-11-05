@@ -10,6 +10,7 @@ import MatchResults from "../listings/MatchResults";
 import BidEditForm from "./BidEditForm";
 import DraftBadge from "../listings/DraftBadge";
 import { useVerification } from "../profile/VerificationPrompt";
+import { ASSET_CLASS_LABELS, assetClassOf, bidUnit, isOutcomeListing } from "../listings/environmental";
 
 const RESPONSE_STATUS_TONE: Record<ResponseStatus, "slate" | "green" | "amber" | "red" | "blue"> = {
   pending: "slate", "in-communication": "blue", "in-negotiation": "amber", accepted: "green", declined: "red",
@@ -109,7 +110,8 @@ export default function MyBidsTable({ bids: initialBids }: { bids: Bid[] }) {
               // quantity/remaining_quantity are always normalized to acres (same convention as
               // offers.acres_offered) — convert back to the originally-typed unit for display.
               const isAcresBid = b.bid_type === "acres_for_contracting";
-              const bidQtyUnit = isAcresBid ? (b.area_unit || "acres") : "MT";
+              const bidQtyUnit = bidUnit(b);
+              const bidPriceUnit = isOutcomeListing(b) ? bidQtyUnit : "MT";
               const displayQuantity = isAcresBid && b.quantity != null ? fromAcres(b.quantity, b.area_unit || "acres") : b.quantity;
               const displayRemaining = isAcresBid && b.remaining_quantity != null ? fromAcres(b.remaining_quantity, b.area_unit || "acres") : b.remaining_quantity;
               return (
@@ -118,7 +120,7 @@ export default function MyBidsTable({ bids: initialBids }: { bids: Bid[] }) {
                     <td className="py-2 pr-4 font-medium text-slate-800">{b.commodity}</td>
                     <td className="py-2 pr-4 text-slate-600">{b.variety || "—"}</td>
                     <td className="py-2 pr-4 text-slate-600">{b.on_behalf_of_buyer_name || "—"}</td>
-                    <td className="py-2 pr-4 text-slate-600">{BID_TYPE_LABELS[b.bid_type] ?? b.bid_type}</td>
+                    <td className="py-2 pr-4 text-slate-600">{isOutcomeListing(b) ? ASSET_CLASS_LABELS[assetClassOf(b)] : (BID_TYPE_LABELS[b.bid_type] ?? b.bid_type)}</td>
                     <td className="py-2 pr-4 text-slate-600">
                       {displayQuantity != null ? formatNumber(displayQuantity, isAcresBid ? 1 : 2) : "—"} {bidQtyUnit}
                       {displayRemaining != null && b.remaining_quantity !== b.quantity && (
@@ -127,7 +129,7 @@ export default function MyBidsTable({ bids: initialBids }: { bids: Bid[] }) {
                         </div>
                       )}
                     </td>
-                    <td className="py-2 pr-4 text-slate-600">{b.bid_price_usd_per_mt != null ? `${formatCurrency(b.bid_price_usd_per_mt)}/MT` : "—"}</td>
+                    <td className="py-2 pr-4 text-slate-600">{b.bid_price_usd_per_mt != null ? `${formatCurrency(b.bid_price_usd_per_mt)}/${bidPriceUnit}` : "—"}</td>
                     <td className="py-2 pr-4">
                       <div className="flex items-center gap-1.5">
                         {b.buyer_approval_status === "pending" ? (
@@ -273,7 +275,7 @@ export default function MyBidsTable({ bids: initialBids }: { bids: Bid[] }) {
                                     <li key={r.id} className="flex items-center gap-2">
                                       <span className="text-slate-700">{r.responder_name || "Unnamed responder"}</span>
                                       <span className="text-slate-500">
-                                        {r.proposed_volume != null ? `${r.proposed_volume} ${b.bid_type === "acres_for_contracting" ? "acres" : "MT"}` : "amount tbd"}
+                                        {r.proposed_volume != null ? `${r.proposed_volume} ${isOutcomeListing(b) ? bidUnit(b) : b.bid_type === "acres_for_contracting" ? "acres" : "MT"}` : "amount tbd"}
                                       </span>
                                       <Badge tone={RESPONSE_STATUS_TONE[r.status]}>{r.status}</Badge>
                                     </li>

@@ -29,7 +29,7 @@ import sb
 import reputation
 from auth import requires_auth
 from profile_routes import photo_url
-from production_data_routes import VISIBLE_COMMODITY_FILTER
+from environmental import MARKET_COMMODITY_FILTER
 
 logger = logging.getLogger(__name__)
 directory_bp = Blueprint("directory", __name__)
@@ -54,13 +54,13 @@ def _active_listing_counts(account_ids):
     if not account_ids:
         return out
     for offer in sb.select("offers", {
-        "status": "eq.published", "commodity": VISIBLE_COMMODITY_FILTER, "select": "created_by,on_behalf_of_grower_account_id",
+        "status": "eq.published", "commodity": MARKET_COMMODITY_FILTER, "select": "created_by,on_behalf_of_grower_account_id",
     }):
         aid = str(offer.get("on_behalf_of_grower_account_id") or offer.get("created_by") or "")
         if aid in out:
             out[aid]["offers"] += 1
     for bid in sb.select("bids", {
-        "status": "eq.open", "buyer_approval_status": "neq.pending", "commodity": VISIBLE_COMMODITY_FILTER,
+        "status": "eq.open", "buyer_approval_status": "neq.pending", "commodity": MARKET_COMMODITY_FILTER,
         "select": "created_by,on_behalf_of_buyer_account_id",
     }):
         aid = str(bid.get("on_behalf_of_buyer_account_id") or bid.get("created_by") or "")
@@ -70,10 +70,10 @@ def _active_listing_counts(account_ids):
 
 
 def _listing_summary(counts):
-    """Short human line for the card — "3 grain offers · 1 buyer listing"."""
+    """Short human line for the card — "3 supply offers · 1 buyer listing"."""
     parts = []
     if counts["offers"]:
-        parts.append(f"{counts['offers']} grain {'offer' if counts['offers'] == 1 else 'offers'}")
+        parts.append(f"{counts['offers']} supply {'offer' if counts['offers'] == 1 else 'offers'}")
     if counts["bids"]:
         parts.append(f"{counts['bids']} buyer {'listing' if counts['bids'] == 1 else 'listings'}")
     return " · ".join(parts) or "No active listings"

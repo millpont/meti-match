@@ -43,7 +43,7 @@ def test_has_listings_filter_and_listing_counts(client, make_account):
     entry = next(e for e in with_listings if e["account_id"] == account_id)
     assert entry["active_offer_count"] == 1
     assert entry["active_listing_count"] == 1
-    assert "1 grain offer" in entry["listing_summary"]
+    assert "1 supply offer" in entry["listing_summary"]
 
 
 def test_organizations_filter_narrows_browse_to_one_account(client, make_account):

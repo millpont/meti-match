@@ -3,11 +3,15 @@ import { api } from "../api";
 import { MultiSelectDropdown, NumberInput } from "../ui";
 import { US_STATES } from "../constants";
 import { useTaxonomyTerms } from "../useTaxonomyTerms";
-import type { BidFilters, OfferFilters, Organization } from "../types";
+import type { AssetClass, BidFilters, OfferFilters, Organization } from "../types";
 import { BID_TYPE_LABELS, GRAIN_COMMODITIES } from "./constants";
 import { COUNTRIES } from "../constants";
+import { ASSET_CLASS_LABELS, OUTCOME_LABELS } from "./environmental";
 
 const BID_TYPES = Object.keys(BID_TYPE_LABELS);
+const MARKET_OPTIONS = Object.keys(ASSET_CLASS_LABELS) as AssetClass[];
+const COMMODITY_OPTIONS = [...GRAIN_COMMODITIES, ...OUTCOME_LABELS];
+
 
 /** One filter bar driving both of the Marketplace Hub's columns at once (item 72 — harmonizes
  * the hub with the per-role filter pickers everywhere else in the app, since OffersBoard/
@@ -23,6 +27,7 @@ export default function MarketFilterBar({
   /** Pre-selected organization(s) — set when the Directory deep-links in to one account's listings. */
   initialOrganizations?: string[];
 }) {
+  const [markets, setMarkets] = useState<AssetClass[]>([]);
   const [commodities, setCommodities] = useState<string[]>([]);
   const [states, setStates] = useState<string[]>([]);
   const [selectedOrganizations, setSelectedOrganizations] = useState<string[]>(initialOrganizations ?? []);
@@ -53,8 +58,8 @@ export default function MarketFilterBar({
   const apply = () => {
     const attributes = [...selectedSustainabilityAttributes, ...selectedSpecialtyAttributes];
     onApply(
-      { commodities, states, attributes, practices: selectedPractices, certifications: selectedCertifications, quantityMin, quantityMax, organizations: selectedOrganizations },
-      { commodities, bidTypes, attributes, destinationCountries, quantityMin, quantityMax, organizations: selectedOrganizations },
+      { assetClasses: markets, commodities, states, attributes, practices: selectedPractices, certifications: selectedCertifications, quantityMin, quantityMax, organizations: selectedOrganizations },
+      { assetClasses: markets, commodities, bidTypes, attributes, destinationCountries, quantityMin, quantityMax, organizations: selectedOrganizations },
     );
   };
 
@@ -63,12 +68,13 @@ export default function MarketFilterBar({
   useEffect(() => { apply(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   const hasFilters =
-    commodities.length > 0 || states.length > 0 || selectedSustainabilityAttributes.length > 0 ||
+    markets.length > 0 || commodities.length > 0 || states.length > 0 || selectedSustainabilityAttributes.length > 0 ||
     selectedSpecialtyAttributes.length > 0 || selectedPractices.length > 0 || selectedCertifications.length > 0 ||
     bidTypes.length > 0 || destinationCountries.length > 0 || selectedOrganizations.length > 0 ||
     !!quantityMin || !!quantityMax;
 
   const clear = () => {
+    setMarkets([]);
     setCommodities([]);
     setStates([]);
     setSelectedSustainabilityAttributes([]);
@@ -86,7 +92,8 @@ export default function MarketFilterBar({
   return (
     <div className="card mb-6 p-4">
       <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-        <MultiSelectDropdown label="Commodity" options={GRAIN_COMMODITIES} selected={commodities} onChange={setCommodities} />
+        <MultiSelectDropdown label="Market" options={MARKET_OPTIONS} labels={ASSET_CLASS_LABELS} selected={markets} onChange={(v) => setMarkets(v as AssetClass[])} />
+        <MultiSelectDropdown label="Commodity / Outcome" options={COMMODITY_OPTIONS} selected={commodities} onChange={setCommodities} />
         <MultiSelectDropdown label="Organization" options={organizationIds} labels={organizationNames} selected={selectedOrganizations} onChange={setSelectedOrganizations} />
         <MultiSelectDropdown label="Sustainability Attributes" options={sustainabilityAttributes.labels} titles={sustainabilityAttributes.titles} selected={selectedSustainabilityAttributes} onChange={setSelectedSustainabilityAttributes} />
         <MultiSelectDropdown label="Specialty Attributes" options={specialtyAttributes.labels} titles={specialtyAttributes.titles} selected={selectedSpecialtyAttributes} onChange={setSelectedSpecialtyAttributes} />
@@ -105,7 +112,7 @@ export default function MarketFilterBar({
         <MultiSelectDropdown label="Destination Country" options={COUNTRIES} selected={destinationCountries} onChange={setDestinationCountries} />
       </div>
       <p className="mt-3 text-xs text-slate-500">
-        Commodity, Organization, Attributes (both Sustainability and Specialty), and Quantity narrow both columns below. State, Certifications, and
+        Market, Commodity / Outcome, Organization, Attributes (both Sustainability and Specialty), and Quantity narrow both columns below. State, Certifications, and
         Practices narrow Grower Listings only; Bid Type and Destination Country narrow Buyer
         Listings only.
       </p>

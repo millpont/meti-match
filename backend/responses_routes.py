@@ -11,6 +11,7 @@ from flask import Blueprint, request, jsonify, session
 
 import sb
 import inventory_routes
+from environmental import is_environmental, unit_for
 from auth import requires_auth
 from notifications_routes import notify
 from business_verification import require_verified
@@ -145,6 +146,9 @@ def _grower_inventory_check(acct, listing_type, listing, marketing_year, propose
     inventory row on file yet for this commodity/marketing_year (nothing to cap against)."""
     if listing_type != "bid" or not marketing_year or proposed_volume is None:
         return None
+    # Carbon / environmental-data bids don't draw on a grower's grain or acres inventory.
+    if is_environmental(listing):
+        return None
     if session.get("role") not in ("grower", "program_operator"):
         return None
     if listing.get("bid_type") == "acres_for_contracting":
@@ -257,10 +261,11 @@ def _enrich_with_listing_summary(rows, viewer_account_id, viewer_is_creator, inc
             }
             creators[("offer", str(o["id"]))] = str(o["created_by"])
     if bid_ids:
-        for b in sb.select("bids", {"id": f"in.({','.join(bid_ids)})", "select": "id,commodity,variety,quantity,bid_type,created_by"}):
+        for b in sb.select("bids", {"id": f"in.({','.join(bid_ids)})", "select": "*"}):
             summaries[("bid", str(b["id"]))] = {
                 "commodity": b["commodity"], "variety": b.get("variety"),
-                "quantity": b.get("quantity"), "uom": "MT",
+                "quantity": b.get("quantity"),
+                "uom": unit_for(b) or ("acres" if b.get("bid_type") == "acres_for_contracting" else "MT"),
             }
             creators[("bid", str(b["id"]))] = str(b["created_by"])
 

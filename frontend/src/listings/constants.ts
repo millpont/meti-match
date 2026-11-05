@@ -19,6 +19,7 @@ export const BID_TYPE_LABELS: Record<string, string> = {
   available_grain: "Available Grain",
   acres_for_contracting: "Acres for Contracting",
   volumes_for_contracting: "Volumes for Contracting",
+  environmental_outcome: "Carbon / Environmental Outcome",
 };
 
 // GAFTA/FOSFA-style dispute categories (see contracts_routes.py's DISPUTE_CATEGORIES). Quality/

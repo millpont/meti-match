@@ -16,6 +16,7 @@ import stats
 from auth import requires_auth, is_superadmin
 from notifications_routes import notify
 from company_routes import apply_approval, apply_decline, _requesters
+from environmental import unit_for
 
 logger = logging.getLogger(__name__)
 admin_bp = Blueprint("admin", __name__)
@@ -58,9 +59,11 @@ def dashboard():
         "active_sellers": stats.stat(lambda cs: stats.distinct(cs, "seller_account_id"), current_window, prior_window),
     }
 
-    published_offers = sb.select("offers", {"status": "eq.published", "select": "locations,expected_volume"})
+    published_offers = sb.select("offers", {"status": "eq.published", "select": "locations,expected_volume,uom"})
     volume_by_state = {}
     for o in published_offers:
+        if o.get("uom") not in ("bushels", "MT"):
+            continue  # carbon / environmental-data offers aren't grain volume
         states = [loc.get("state") for loc in (o.get("locations") or []) if loc.get("state")] or ["Unknown"]
         # A multi-state offer's volume counts toward every state it lists — there's no per-state
         # split of one offer's total, so this is a deliberate over-count across states, not a bug.
@@ -246,7 +249,7 @@ def list_listings():
     if err:
         return err
     offers = sb.select("offers", {"select": "id,created_by,commodity,variety,expected_volume,uom,status,created_at", "order": "created_at.desc"})
-    bids = sb.select("bids", {"select": "id,created_by,commodity,variety,quantity,bid_type,status,created_at", "order": "created_at.desc"})
+    bids = sb.select("bids", {"select": "*", "order": "created_at.desc"})
     ids = {str(o["created_by"]) for o in offers} | {str(b["created_by"]) for b in bids}
     names = _account_names(ids)
 
@@ -262,7 +265,7 @@ def list_listings():
         out.append({
             "id": str(b["id"]), "listing_type": "bid", "created_by_name": names.get(str(b["created_by"])),
             "commodity": b["commodity"], "variety": b.get("variety"),
-            "quantity": _num(b.get("quantity")), "uom": "MT" if b.get("bid_type") != "acres_for_contracting" else "acres",
+            "quantity": _num(b.get("quantity")), "uom": unit_for(b) or ("acres" if b.get("bid_type") == "acres_for_contracting" else "MT"),
             "status": b["status"], "created_at": b["created_at"],
         })
     out.sort(key=lambda x: x["created_at"], reverse=True)

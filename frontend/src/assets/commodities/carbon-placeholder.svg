@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#e8efe9"/>
+  <path d="M0 150 Q50 135 100 150 T200 150 V200 H0 Z" fill="#b9d3bf"/>
+  <path d="M100 150 C100 115 100 95 100 70" stroke="#1f4d3a" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M100 105 C75 100 62 82 64 60 C88 62 102 80 100 105 Z" fill="#3f7a5a"/>
+  <path d="M100 90 C122 86 136 68 134 46 C110 48 98 66 100 90 Z" fill="#5c9a74"/>
+  <text x="100" y="185" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="26" font-weight="700" fill="#1f4d3a">CO₂</text>
+</svg>

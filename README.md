@@ -82,6 +82,7 @@ METI's *original* project instead — see the note in each file):
 | `0012_disputes.sql` | `disputes` (reason/description/status against a contract) |
 | `0013_enable_rls.sql` | Enables RLS on every table added since `0004` (service-role key still bypasses it — see the note in the file) |
 | `0014_updates_batch.sql` | Yield units + verification document paths on `production_data`/`offers`; `accounts.frozen`/`frozen_reason`; GAFTA dispute fields (`category`, `resolution_track`, `tier`, `filing_deadline`, `is_time_barred`, `tribunal_resolution_notes`, `appealed_at`) on `disputes` |
+| `0062_environmental_listings.sql` | Carbon & environmental-data bids/offers: `asset_class`, `outcome_type`, `vintage_years`, `source_states`, `source_commodities`, `methodology` (+ `offers.data_attributes`); widens the `bid_type`, `uom` and `quantity_basis` checks |
 
 `seeds/grain_demo.sql` seeds one demo international buyer with a few open bids, so a grower has
 real data to browse before every role's UI is built out.

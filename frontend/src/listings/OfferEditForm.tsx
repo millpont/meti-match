@@ -7,6 +7,7 @@ import AttributeRequestLink from "../AttributeRequestLink";
 import { CountyPicker } from "./OfferForm";
 import type { Offer, OfferLocation, PriceType } from "../types";
 import { COMMODITY_VARIETIES, PRICE_TYPE_OPTIONS } from "./constants";
+import { isOutcomeListing, offerPriceUnit } from "./environmental";
 
 /** Only the fields offers_routes.py's EDITABLE_OFFER_FIELDS allows through PATCH — quantity,
  * timing, basis, and marketing-year are permanently immutable once a listing is created
@@ -37,8 +38,12 @@ export default function OfferEditForm({ offer, onSaved, onCancel }: {
   const [certifications, setCertifications] = useState(offer.certifications);
   const [locations, setLocations] = useState<OfferLocation[]>(offer.locations);
   const [overrideConservationPractices, setOverrideConservationPractices] = useState(offer.production.conservation_practices);
+  const [methodology, setMethodology] = useState(offer.methodology ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Carbon / environmental-data offers have none of the grain fields (variety, quality specs,
+  // harvest window, attributes) — only price, minimum, delivery, methodology, standards, practices.
+  const outcome = isOutcomeListing(offer);
 
   const sustainabilityAttrTerms = useTaxonomyTerms("attribute", "sustainability");
   const specialtyAttrTerms = useTaxonomyTerms("attribute", "specialty");
@@ -59,7 +64,11 @@ export default function OfferEditForm({ offer, onSaved, onCancel }: {
     setError(null);
     setSaving(true);
     try {
-      const { offer: updated } = await api.updateOffer(offer.id, {
+      const { offer: updated } = await api.updateOffer(offer.id, outcome ? {
+        desired_price: desiredPrice, min_order: minOrder, methodology,
+        delivery_window_start: deliveryWindowStart || null, delivery_window_end: deliveryWindowEnd || null,
+        certifications, override_conservation_practices: overrideConservationPractices,
+      } : {
         variety, price_type: priceType || null, desired_price: desiredPrice,
         protein_pct: proteinPct, moisture_pct_max: moisturePctMax, min_order: minOrder,
         harvest_start: harvestStart || null, harvest_end: harvestEnd || null,
@@ -88,6 +97,25 @@ export default function OfferEditForm({ offer, onSaved, onCancel }: {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="grid gap-4 sm:grid-cols-2">
+        {outcome ? (
+          <>
+            <DateRangeField className="sm:col-span-2" label="Delivery Window" required={offer.listing_timing === "future"}
+              start={deliveryWindowStart} end={deliveryWindowEnd}
+              onStartChange={setDeliveryWindowStart} onEndChange={setDeliveryWindowEnd} />
+            <div>
+              <label className="label">Asking Price ($/{offerPriceUnit(offer)})</label>
+              <NumberInput value={desiredPrice} onChange={(v) => setDesiredPrice(v)} />
+            </div>
+            <div>
+              <label className="label">Minimum Purchase ({offer.uom})</label>
+              <NumberInput value={minOrder} onChange={(v) => setMinOrder(v)} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label">Methodology / Registry</label>
+              <input className="field" maxLength={200} value={methodology} onChange={(e) => setMethodology(e.target.value)} />
+            </div>
+          </>
+        ) : (<>
         <div>
           <label className="label">Variety / Class</label>
           <select className="field" value={variety} disabled={!COMMODITY_VARIETIES[offer.commodity]}
@@ -107,7 +135,7 @@ export default function OfferEditForm({ offer, onSaved, onCancel }: {
           </select>
         </div>
         <div>
-          <label className="label">Desired Price ($/{offer.uom === "bushels" ? "bushel" : "MT"})</label>
+          <label className="label">Desired Price ($/{offerPriceUnit(offer)})</label>
           <NumberInput value={desiredPrice} onChange={(v) => setDesiredPrice(v)} />
         </div>
         <div>
@@ -159,18 +187,20 @@ export default function OfferEditForm({ offer, onSaved, onCancel }: {
             </label>
           </>
         )}
+        </>)}
       </div>
 
-      <div>
+      {!outcome && <div>
         <label className="label">State(s)</label>
         <ChipMultiSelect options={US_STATES} selected={locations.map((l) => l.state)} onChange={toggleLocationState} />
         {locations.map((loc) => (
           <CountyPicker key={loc.state} state={loc.state} selected={loc.counties}
             onChange={(counties) => setLocationCounties(loc.state, counties)} />
         ))}
-      </div>
+      </div>}
 
       <div className="space-y-3">
+        {!outcome && <>
         <div>
           <label className="label">Sustainability Attributes</label>
           <ChipMultiSelect options={sustainabilityAttrTerms.labels} titles={sustainabilityAttrTerms.titles} selected={sustainabilityAttributes} onChange={setSustainabilityAttributes} />
@@ -180,13 +210,14 @@ export default function OfferEditForm({ offer, onSaved, onCancel }: {
           <label className="label">Specialty Attributes</label>
           <ChipMultiSelect options={specialtyAttrTerms.labels} titles={specialtyAttrTerms.titles} selected={specialtyAttributes} onChange={setSpecialtyAttributes} />
         </div>
+        </>}
         <div>
-          <label className="label">Certifications</label>
+          <label className="label">{outcome ? "Standards / Certifications" : "Certifications"}</label>
           <ChipMultiSelect options={certificationTerms.labels} titles={certificationTerms.titles} selected={certifications} onChange={setCertifications} />
           <AttributeRequestLink type="certification" />
         </div>
         <div>
-          <label className="label">Conservation Practices (for this listing)</label>
+          <label className="label">{outcome ? "Practices" : "Conservation Practices (for this listing)"}</label>
           <ChipMultiSelect options={practices.labels} titles={practices.titles} selected={overrideConservationPractices} onChange={setOverrideConservationPractices} />
         </div>
       </div>

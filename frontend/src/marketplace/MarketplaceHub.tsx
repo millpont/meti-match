@@ -21,7 +21,7 @@ export default function MarketplaceHub({ initialOrganization }: { initialOrganiz
 
   return (
     <div>
-      <h1 className="mb-1 text-xl font-bold text-slate-900">Global Grain Marketplace Hub</h1>
+      <h1 className="mb-1 text-xl font-bold text-slate-900">Global Marketplace Hub</h1>
       <p className="mb-6 text-sm text-slate-600">Browse supply offers and buyer bids across the whole marketplace.</p>
 
       <MarketFilterBar

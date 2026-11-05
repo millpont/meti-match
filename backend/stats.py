@@ -42,7 +42,10 @@ def windowed(contracts):
 
 
 def volume(contracts):
-    return sum(num(c.get("final_volume")) or 0 for c in contracts)
+    """Grain volume (MT) only — carbon/environmental contracts are in their own units (tCO2e,
+    lbs, ...) and would be meaningless summed into a tonnage figure. They still count in GMV."""
+    from environmental import OUTCOME_LABELS
+    return sum(num(c.get("final_volume")) or 0 for c in contracts if c.get("commodity") not in OUTCOME_LABELS)
 
 
 def gmv(contracts):

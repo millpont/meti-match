@@ -6,6 +6,7 @@ import AttributeRequestLink from "../AttributeRequestLink";
 import type { Bid } from "../types";
 import { COMMODITY_VARIETIES } from "../listings/constants";
 import { COUNTRIES } from "../constants";
+import { bidUnit, isOutcomeListing } from "../listings/environmental";
 
 /** Only the fields bids_routes.py's EDITABLE_BID_FIELDS allows through PATCH — commodity,
  * bid_type, and quantity are permanently immutable once a bid is posted (close + repost
@@ -26,8 +27,11 @@ export default function BidEditForm({ bid, onSaved, onCancel }: {
   const [selectedDataRequirements, setSelectedDataRequirements] = useState(bid.required_data_requirements);
   const [allowPartial, setAllowPartial] = useState(bid.allow_partial);
   const [country, setCountry] = useState(bid.destination_country ?? "");
+  const [methodology, setMethodology] = useState(bid.methodology ?? "");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Carbon / environmental-data RFQs have no variety, destination or grain attributes.
+  const outcome = isOutcomeListing(bid);
 
   const sustainabilityAttributes = useTaxonomyTerms("attribute", "sustainability");
   const specialtyAttributes = useTaxonomyTerms("attribute", "specialty");
@@ -58,7 +62,12 @@ export default function BidEditForm({ bid, onSaved, onCancel }: {
     setError(null);
     setSaving(true);
     try {
-      const { bid: updated } = await api.updateBid(bid.id, {
+      const { bid: updated } = await api.updateBid(bid.id, outcome ? {
+        bid_price_usd_per_mt: price, methodology,
+        delivery_window_start: start || null, delivery_window_end: end || null,
+        required_practices: selectedPractices, required_certifications: selectedCertifications,
+        required_data_requirements: selectedDataRequirements, allow_partial: allowPartial,
+      } : {
         variety, bid_price_usd_per_mt: price,
         delivery_window_start: start || null, delivery_window_end: end || null,
         required_attributes: selectedAttributes, required_practices: selectedPractices,
@@ -83,27 +92,32 @@ export default function BidEditForm({ bid, onSaved, onCancel }: {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div>
+        {outcome ? (
+          <div>
+            <label className="label">Methodology / Registry</label>
+            <input className="field" maxLength={200} value={methodology} onChange={(e) => setMethodology(e.target.value)} />
+          </div>
+        ) : <div>
           <label className="label">Variety / Class</label>
           <select className="field" value={variety} disabled={!COMMODITY_VARIETIES[bid.commodity]}
             onChange={(e) => setVariety(e.target.value)}>
             <option value="">{COMMODITY_VARIETIES[bid.commodity] ? "Select variety" : "No varieties for this crop"}</option>
             {(COMMODITY_VARIETIES[bid.commodity] ?? []).map((v) => <option key={v} value={v}>{v}</option>)}
           </select>
-        </div>
+        </div>}
         <div>
-          <label className="label">Bid Price ($/MT)</label>
+          <label className="label">Bid Price ($/{isOutcomeListing(bid) ? bidUnit(bid) : "MT"})</label>
           <NumberInput value={price} onChange={(v) => setPrice(v)} />
         </div>
         <DateRangeField className="sm:col-span-2" label="Delivery Window"
           start={start} end={end} onStartChange={setStart} onEndChange={setEnd} />
-        <div>
+        {!outcome && <div>
           <label className="label">Destination Country</label>
           <select className="field" value={country} onChange={(e) => setCountry(e.target.value)}>
             <option value="">Select country</option>
             {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-        </div>
+        </div>}
       </div>
 
       <div>
@@ -114,6 +128,7 @@ export default function BidEditForm({ bid, onSaved, onCancel }: {
       </div>
 
       <div className="space-y-3">
+        {!outcome && <>
         <div>
           <label className="label">Required Sustainability Attributes</label>
           <ChipMultiSelect
@@ -144,6 +159,7 @@ export default function BidEditForm({ bid, onSaved, onCancel }: {
           )}
           <AttributeRequestLink type="attribute" />
         </div>
+        </>}
         <div>
           <label className="label">Required Practices</label>
           <ChipMultiSelect options={practices.labels} titles={practices.titles} selected={selectedPractices} onChange={setSelectedPractices} />

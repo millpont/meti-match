@@ -101,14 +101,48 @@ export interface AccountSetupDraft {
 // -------------------------------------------------------------------- listings (Phase 2+)
 
 export type OfferStatus = "draft" | "published" | "accepted" | "withdrawn";
-export type Uom = "bushels" | "MT";
+/** Units a grain quantity can be entered in (offer form, grower inventory). */
+export type GrainUom = "bushels" | "MT";
+export type Uom = GrainUom | OutcomeUnit;
+
+/** Grain, or a carbon / environmental-data listing (see listings/environmental.ts and
+ * migrations/0062_environmental_listings.sql). */
+export type AssetClass = "grain" | "carbon" | "environmental";
+/** Same keys as the legacy carbon-credit OutcomeField (and meti-v2's Match page outcomes). */
+export type OutcomeType = OutcomeField;
+export type OutcomeUnit = "tCO2e" | "MT" | "acre-ft" | "lbs" | "acres";
+
+/** Fields every listing carries for carbon / environmental-data markets. On a grain listing
+ * asset_class is "grain" (or absent on rows created before migration 0062) and the rest are
+ * empty. On a non-grain listing, `commodity` holds the outcome's label. */
+export interface OutcomeFields {
+  asset_class?: AssetClass;
+  outcome_type?: OutcomeType | null;
+  vintage_years?: string[];
+  source_states?: string[];
+  source_commodities?: string[];
+  methodology?: string | null;
+}
+
+/** Shared create-request fields for a carbon / environmental-data bid or offer. */
+export interface OutcomeListingDraft {
+  asset_class: "carbon" | "environmental";
+  outcome_type: OutcomeType;
+  quantity?: string;
+  vintage_years: string[];
+  source_states: string[];
+  source_commodities: string[];
+  methodology: string;
+  delivery_window_start: string;
+  delivery_window_end: string;
+}
 export type PriceType = "fixed" | "basis";
 
 /** Shared by an offer's grower_approval_status and a bid's buyer_approval_status — the same
  * on-behalf-of + approval gate, just for the two different roles that can be represented. */
 export type ApprovalStatus = "not_required" | "pending" | "approved" | "declined";
 
-export interface Offer {
+export interface Offer extends OutcomeFields {
   id: string;
   created_by: string;
   /** Present only on the browse listing (GET /api/offers) — batch-fetched for ProfileLink. */
@@ -175,9 +209,12 @@ export interface Offer {
   /** Set on an aggregated program-operator listing: the enrolled growers whose grain is pooled
    * into it, and how much each contributed (in this offer's uom). Empty otherwise. */
   aggregate_growers: { grower_account_id: string; grower_name: string | null; contributed_volume: number | null }[];
+  /** Carbon / environmental-data offers only — pricing-relevant data tags (meti-v2's
+   * "additional data", e.g. Traceability). */
+  data_attributes?: string[];
 }
 
-export type QuantityBasis = "grain" | "acres";
+export type QuantityBasis = "grain" | "acres" | "outcome";
 export type ListingTiming = "available" | "future";
 export type AreaUnit = "acres" | "hectares";
 export type QuantityYieldUnit = "bu/acre" | "MT/hectare" | "lbs/acre";
@@ -202,7 +239,7 @@ export interface OfferDraft extends ProductionOverrideDraft {
   delivery_window_start: string;
   delivery_window_end: string;
   expected_volume: string;
-  uom: Uom;
+  uom: GrainUom;
   acres_offered: string;
   area_unit: AreaUnit;
   yield_rate: string;
@@ -257,7 +294,7 @@ export interface GrowerInventoryRow {
    * commodity/marketing_year (see migrations/0033_acres_inventory.sql). */
   quantity_basis: QuantityBasis;
   total_volume: number | null;
-  uom: Uom | null;
+  uom: GrainUom | null;
   remaining_volume: number | null;
   total_acres: number | null;
   area_unit: AreaUnit | null;
@@ -266,9 +303,9 @@ export interface GrowerInventoryRow {
   updated_at: string;
 }
 
-export type BidType = "available_grain" | "acres_for_contracting" | "volumes_for_contracting";
+export type BidType = "available_grain" | "acres_for_contracting" | "volumes_for_contracting" | "environmental_outcome";
 
-export interface Bid {
+export interface Bid extends OutcomeFields {
   id: string;
   created_by: string;
   /** Present only on the browse listing (GET /api/bids) — batch-fetched for ProfileLink. */
@@ -314,6 +351,8 @@ export interface Bid {
 }
 
 export interface BidFilters {
+  assetClasses?: AssetClass[];
+  vintageYears?: string[];
   commodities?: string[];
   bidTypes?: string[];
   attributes?: string[];
@@ -326,6 +365,8 @@ export interface BidFilters {
 }
 
 export interface OfferFilters {
+  assetClasses?: AssetClass[];
+  vintageYears?: string[];
   commodities?: string[];
   states?: string[];
   certifications?: string[];
@@ -383,7 +424,10 @@ export interface BuyerRequirements {
 // -------------------------------------------------------------------- matching (Phase 5)
 
 export interface MatchRationale {
-  commodity_variety_match: { variety_matched: boolean; points: number };
+  /** Grain listings only. */
+  commodity_variety_match?: { variety_matched: boolean; points: number };
+  /** Carbon / environmental-data listings only — replaces commodity_variety_match. */
+  vintage_location_match?: { vintage_overlap_pct: number | null; state_overlap_pct: number | null; points: number };
   delivery_window_overlap: { overlap_pct: number; known: boolean; points: number };
   quality_attribute_match: { covered_pct: number; points: number };
   counterparty_reliability: { points: number; completed_contracts: number; on_time_rate: number | null };
@@ -883,7 +927,7 @@ export interface DirectoryEntry {
   active_listing_count: number;
   active_offer_count: number;
   active_bid_count: number;
-  /** Short human line for the card, e.g. "3 grain offers · 1 buyer listing". */
+  /** Short human line for the card, e.g. "3 supply offers · 1 buyer listing". */
   listing_summary: string;
 }
 
