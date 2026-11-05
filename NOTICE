@@ -1,0 +1,13 @@
+METI Match
+Copyright 2026 MillPont, Inc.
+
+This product was originally developed by MillPont, Inc., the originating author
+of METI Match, and is licensed under the Apache License, Version 2.0 (see the
+LICENSE file).
+
+Third-party content
+-------------------
+The commodity photographs in frontend/src/assets/commodities/ are not authored by
+MillPont, Inc. and remain under their own licenses (CC BY-SA 3.0, GFDL, CC0 1.0,
+and a U.S. federal government work). See
+frontend/src/assets/commodities/ATTRIBUTION.md for sources and attribution.
