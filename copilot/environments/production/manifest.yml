@@ -1,0 +1,6 @@
+name: production
+type: Environment
+
+network:
+  vpc:
+    placement: private

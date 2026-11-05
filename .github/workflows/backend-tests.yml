@@ -1,0 +1,40 @@
+name: Backend tests
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+      - "migrations/**"
+      - ".github/workflows/backend-tests.yml"
+  push:
+    branches: [main, develop]
+    paths:
+      - "backend/**"
+      - "migrations/**"
+      - ".github/workflows/backend-tests.yml"
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements-dev.txt
+
+      - name: Run backend test suite
+        working-directory: backend
+        env:
+          # These MUST point at a dedicated TEST Supabase project — see backend/TESTING.md.
+          # Tests create and tear down their own disposable accounts/listings, but should never
+          # run with routine write access to the production project.
+          SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_KEY }}
+          APP_SECRET_KEY: ci-test-secret
+          ENVIRONMENT: development
+        run: pytest -v

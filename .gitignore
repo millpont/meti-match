@@ -1,0 +1,25 @@
+# Secrets
+.env
+env
+copilot-secrets.yml
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+backend/.flask_session/
+
+# Node / Vite
+node_modules/
+frontend/dist/
+frontend/node_modules/
+*.log
+
+# tsc -b build artifacts
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# OS
+.DS_Store

@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-brand-bg text-slate-800 font-sans antialiased;
+  margin: 0;
+}
+
+@layer components {
+  .card {
+    @apply bg-brand-panel border border-brand-edge rounded-xl;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
+           transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-brand-green text-white hover:bg-brand-greenDark;
+  }
+  .btn-ghost {
+    @apply btn border border-brand-edge text-slate-700 hover:bg-brand-bg;
+  }
+  .field {
+    @apply w-full rounded-lg bg-white border border-brand-edge px-3 py-2 text-sm
+           text-slate-800 focus:outline-none focus:border-brand-green;
+  }
+  .label {
+    @apply block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+}
+
+@keyframes confetti-fall {
+  0%   { transform: translateY(-12vh) rotate(0deg);   opacity: 1; }
+  100% { transform: translateY(112vh) rotate(720deg); opacity: 0.9; }
+}
+
+@keyframes match-pop {
+  0%   { transform: scale(0.6); opacity: 0; }
+  40%  { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
