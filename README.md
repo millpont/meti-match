@@ -132,3 +132,10 @@ copilot deploy --name meti-open-match --env production
 `copilot-secrets.example.yml` predates this rebuild — it's missing `SUPABASE_URL` /
 `SUPABASE_SERVICE_KEY` (which `backend/sb.py` requires) and still points `DB_*` at METI's
 original instance. Update it for METI Match's own Supabase project before deploying.
+
+## License
+
+Licensed under the [Apache License, Version 2.0](LICENSE). Copyright 2026 MillPont, Inc., the
+originating author — see [NOTICE](NOTICE). The commodity photos in
+`frontend/src/assets/commodities/` keep their own licenses; see
+[ATTRIBUTION.md](frontend/src/assets/commodities/ATTRIBUTION.md).
